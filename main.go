@@ -1,11 +1,30 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"syscall"
 )
+
+func lsblkLinux() (map[string]interface{}, error) {
+	lsblkCmd := exec.Command("lsblk", "--json")
+	lsblkOut, err := lsblkCmd.Output()
+	if err != nil {
+		fmt.Println("error:", err)
+		os.Exit(1)
+	}
+
+	lsblk := make(map[string]interface{})
+	err = json.Unmarshal(lsblkOut, &lsblk)
+	if err != nil {
+		fmt.Println("error:", err)
+		os.Exit(1)
+	}
+
+	return lsblk, nil
+}
 
 func checkRoot() {
 	if os.Geteuid() != 0 {
