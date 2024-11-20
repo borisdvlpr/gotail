@@ -30,7 +30,7 @@ func promptUser(prompt string, allowedReplies []string) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Print(prompt, allowedReplies)
+		fmt.Printf("%s [%s] ", prompt, strings.Join(allowedReplies, "/"))
 
 		answer, err := reader.ReadString('\n')
 		if err != nil {
