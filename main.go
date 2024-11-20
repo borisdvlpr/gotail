@@ -1,17 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
+	"strings"
 	"syscall"
 )
-
-func handleError(err error) {
-	fmt.Println("error:", err)
-	os.Exit(1)
-}
 
 func lsblkLinux() (map[string]interface{}, error) {
 	lsblkCmd := exec.Command("lsblk", "--json")
@@ -26,6 +24,27 @@ func lsblkLinux() (map[string]interface{}, error) {
 	}
 
 	return lsblk, nil
+}
+
+func promptUser(prompt string, allowedReplies []string) (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Print(prompt, allowedReplies)
+
+		answer, err := reader.ReadString('\n')
+		if err != nil {
+			return "", fmt.Errorf("%w", err)
+		}
+
+		answer = strings.TrimSpace(answer)
+
+		if slices.Contains(allowedReplies, answer) || len(allowedReplies) == 0 {
+			return answer, nil
+		}
+
+		fmt.Println("Option not available. Please try again.")
+	}
 }
 
 func checkRoot() error {
@@ -47,6 +66,11 @@ func checkRoot() error {
 	}
 
 	return nil
+}
+
+func handleError(err error) {
+	fmt.Println("error:", err)
+	os.Exit(1)
 }
 
 func main() {
