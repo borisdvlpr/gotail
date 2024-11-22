@@ -11,17 +11,40 @@ import (
 	"syscall"
 )
 
-func lsblkLinux() (map[string]interface{}, error) {
+type LsblkOutput struct {
+	Blockdevices []struct {
+		Name        string   `json:"name"`
+		MajMin      string   `json:"maj:min"`
+		Rm          bool     `json:"rm"`
+		Size        string   `json:"size"`
+		Ro          bool     `json:"ro"`
+		Type        string   `json:"type"`
+		Mountpoints []string `json:"mountpoints"`
+		Children    []struct {
+			Name        string   `json:"name"`
+			MajMin      string   `json:"maj:min"`
+			Rm          bool     `json:"rm"`
+			Size        string   `json:"size"`
+			Ro          bool     `json:"ro"`
+			Type        string   `json:"type"`
+			Mountpoints []string `json:"mountpoints"`
+		} `json:"children,omitempty"`
+	} `json:"blockdevices"`
+}
+
+func lsblk() (LsblkOutput, error) {
 	lsblkCmd := exec.Command("lsblk", "--json")
 	lsblkOut, err := lsblkCmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return LsblkOutput{}, fmt.Errorf("%w", err)
 	}
 
-	lsblk := make(map[string]interface{})
+	var lsblk LsblkOutput
 	if err = json.Unmarshal(lsblkOut, &lsblk); err != nil {
-		return nil, fmt.Errorf("lsblk parsing: %w", err)
+		return LsblkOutput{}, fmt.Errorf("lsblk parsing: %w", err)
 	}
+
+	fmt.Println(lsblk)
 
 	return lsblk, nil
 }
