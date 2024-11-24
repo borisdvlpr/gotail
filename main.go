@@ -99,6 +99,10 @@ func findUserData() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("%w", err)
 		}
+
+		if filePath != "" {
+			return filePath, nil
+		}
 	}
 
 	if runtime.GOOS == "linux" {
