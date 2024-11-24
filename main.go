@@ -58,6 +58,14 @@ func getFilePath(rootDir string, fileName string) (string, error) {
 			return err
 		}
 
+		if strings.HasPrefix(d.Name(), ".") {
+			if d.IsDir() {
+				return fs.SkipDir
+			}
+
+			return nil
+		}
+
 		if !d.IsDir() && d.Name() == fileName {
 			filePath = path
 			return fs.SkipDir
