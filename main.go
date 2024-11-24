@@ -82,15 +82,23 @@ func getFilePath(rootDir string, fileName string) (string, error) {
 }
 
 func searchMountpoints(mountpoints []string) (string, error) {
-	for _, mountpoint := range mountpoints {
-		if mountpoint != "" && !strings.Contains(mountpoint, "/snap") {
-			filePath, err := getFilePath(mountpoint, "user-data")
-			if err != nil {
-				return "", fmt.Errorf("%w", err)
-			}
+	ignorePaths := []string{"/boot", "/home", "/snap"}
 
-			if filePath != "" {
-				return filePath, nil
+	for _, mountpoint := range mountpoints {
+		if mountpoint != "" {
+			validPath := !slices.ContainsFunc(ignorePaths, func(s string) bool {
+				return strings.HasPrefix(mountpoint, s)
+			})
+
+			if mountpoint != "/" && validPath {
+				filePath, err := getFilePath(mountpoint, "user-data")
+				if err != nil {
+					return "", fmt.Errorf("%w", err)
+				}
+
+				if filePath != "" {
+					return filePath, nil
+				}
 			}
 		}
 	}
