@@ -202,21 +202,20 @@ func checkRoot() error {
 }
 
 func handleError(err error) {
-	fmt.Println("error:", err)
-	os.Exit(1)
+	if err != nil {
+		fmt.Println("error:", err)
+		os.Exit(1)
+	}
 }
 
 func main() {
 	flags := []string{"tailscale", "up", "--ssh"}
 
-	if err := checkRoot(); err != nil {
-		handleError(err)
-	}
+	err := checkRoot()
+	handleError(err)
 
 	filePath, err := findUserData()
-	if err != nil {
-		handleError(err)
-	}
+	handleError(err)
 
 	if filePath == "" {
 		fmt.Println("Could not find 'user-data' file. Please try removing your SD card and re-inserting it.")
@@ -226,9 +225,7 @@ func main() {
 	fmt.Printf("Found 'user-data' file at '%s'.\n", filePath)
 
 	exitNode, err := promptUser("Would you like this device to be an exit node?", []string{"y", "n"})
-	if err != nil {
-		handleError(err)
-	}
+	handleError(err)
 
 	if exitNode == "y" {
 		flags = append(flags, "--advertise-exit-node")
@@ -236,15 +233,11 @@ func main() {
 	}
 
 	authKey, err := promptUser("Please enter your Tailscale authkey:", []string{})
-	if err != nil {
-		handleError(err)
-	}
+	handleError(err)
 	flags = append(flags, fmt.Sprintf("--authkey=%s", authKey))
 
 	hostName, err := promptUser("Please enter a hostname for this device:", []string{})
-	if err != nil {
-		handleError(err)
-	}
+	handleError(err)
 
 	if hostName != "" {
 		flags = append(flags, fmt.Sprintf("--hostname=%s", hostName))
