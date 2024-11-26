@@ -163,7 +163,11 @@ func promptUser(prompt string, allowedReplies []string) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Printf("%s [%s] ", prompt, strings.Join(allowedReplies, "/"))
+		if allowedReplies != nil {
+			fmt.Printf("%s [%s] ", prompt, strings.Join(allowedReplies, "/"))
+		} else {
+			fmt.Printf("%s ", prompt)
+		}
 
 		answer, err := reader.ReadString('\n')
 		if err != nil {
@@ -232,11 +236,11 @@ func main() {
 		fmt.Println("This device will be an exit node.")
 	}
 
-	authKey, err := promptUser("Please enter your Tailscale authkey:", []string{})
+	authKey, err := promptUser("Please enter your Tailscale authkey:", nil)
 	handleError(err)
 	flags = append(flags, fmt.Sprintf("--authkey=%s", authKey))
 
-	hostName, err := promptUser("Please enter a hostname for this device:", []string{})
+	hostName, err := promptUser("Please enter a hostname for this device:", nil)
 	handleError(err)
 
 	if hostName != "" {
