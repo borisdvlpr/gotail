@@ -214,6 +214,11 @@ func handleError(err error) {
 
 func main() {
 	flags := []string{"tailscale", "up", "--ssh"}
+	configs := []string{
+		"runcmd:\n",
+		`  - [ "sh", "-c", "curl -fsSL https://tailscale.com/install.sh | sh" ]` + "\n",
+		`  - [ "sh", "-c", "echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && sudo sysctl -p /etc/sysctl.d/99-tailscale.conf" ]` + "\n",
+	}
 
 	err := checkRoot()
 	handleError(err)
@@ -245,6 +250,25 @@ func main() {
 
 	if hostName != "" {
 		flags = append(flags, fmt.Sprintf("--hostname=%s", hostName))
+		configs = append(configs, fmt.Sprintf(`  - [ "sh", "-c", "sudo hostnamectl hostname %s" ]`+"\n", hostName))
 	}
 	fmt.Println("Adding Tailscale to 'user-data' file.")
+
+	jsonFlags, err := json.Marshal(flags)
+	handleError(err)
+	configs = append(configs, fmt.Sprintf("  - %s\n", jsonFlags))
+
+	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	handleError(err)
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	for _, config := range configs {
+		_, err = writer.WriteString(config)
+		handleError(err)
+	}
+
+	err = writer.Flush()
+	handleError(err)
+	fmt.Println("Tailscale will be installed on boot. Please eject your SD card and boot your Raspberry Pi.")
 }
