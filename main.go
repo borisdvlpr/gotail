@@ -258,7 +258,13 @@ func main() {
 
 	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	handleError(err)
-	defer file.Close()
+
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			handleError(err)
+		}
+	}(file)
 
 	writer := bufio.NewWriter(file)
 	for _, config := range configs {
