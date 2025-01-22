@@ -256,7 +256,7 @@ func main() {
 
 	configs = append(configs, fmt.Sprintf("  - [ %s ]\n", strings.Join(flags, ", ")))
 
-	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
 	handleError(err)
 
 	defer func(file *os.File) {
