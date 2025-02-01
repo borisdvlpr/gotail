@@ -1,4 +1,4 @@
-package main
+package input
 
 import (
 	"os"
@@ -24,7 +24,7 @@ func TestPromptUser(t *testing.T) {
 		}
 	}()
 
-	answer, err := promptUser("Would you like this device to be an exit node?", []string{"y", "n"})
+	answer, err := PromptUser("Would you like this device to be an exit node?", []string{"y", "n"})
 	if err != nil {
 		t.Errorf("promptUser() error = %v, wantErr %v", err, false)
 	}
