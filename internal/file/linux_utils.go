@@ -50,11 +50,11 @@ func ListBlockDevices() (BlockDevices, error) {
 	return lsblk, nil
 }
 
-// SearchMountpoints searches for the "user-data" file in the provided
-// mountpoints iterating over them, ignoring certain paths.
+// SearchMountpoints searches for a file with the specified name in the
+// provided mountpoints iterating over them, ignoring certain paths.
 // For valid mountpoints, it calls GetFilePath to find the "user-data" file.
-// If the file is found, its path is returned. If an error occurs during the search, it is returned.
-func SearchMountpoints(mountpoints []string) (string, error) {
+// If the file is found, its path is returned. If an error occurs, it is returned.
+func SearchMountpoints(mountpoints []string, fileName string) (string, error) {
 	ignorePaths := []string{"/boot", "/home", "/snap"}
 
 	for _, mountpoint := range mountpoints {
@@ -64,7 +64,7 @@ func SearchMountpoints(mountpoints []string) (string, error) {
 			})
 
 			if mountpoint != "/" && validPath {
-				filePath, err := GetFilePath(mountpoint, "user-data")
+				filePath, err := GetFilePath(mountpoint, fileName)
 				if err != nil {
 					return "", fmt.Errorf("%w", err)
 				}

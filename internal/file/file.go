@@ -1,7 +1,7 @@
 // Package file implements utility routines for file operations and system interactions.
 //
 // It provides functions to search for files, list block devices, and search mountpoints on
-// both MacOS and Linux systems.
+// both macOS and Linux systems.
 package file
 
 import (
@@ -52,11 +52,12 @@ func GetFilePath(rootDir string, fileName string) (string, error) {
 // On Linux, it lists block devices and searches their mountpoints and their children mountpoints.
 // If the file is found, its path is returned. If an error occurs during the search, it is returned.
 func FindUserData() (string, error) {
+	const fileName = "user-data"
 	var filePath string
 	var err error
 
 	if runtime.GOOS == "darwin" {
-		filePath, err = GetFilePath("/Volumes", "user-data")
+		filePath, err = GetFilePath("/Volumes", fileName)
 		if err != nil {
 			return "", fmt.Errorf("%w", err)
 		}
@@ -74,7 +75,7 @@ func FindUserData() (string, error) {
 
 		for _, device := range devices.Blockdevices {
 			if device.Mountpoints != nil {
-				filePath, err = SearchMountpoints(device.Mountpoints)
+				filePath, err = SearchMountpoints(device.Mountpoints, fileName)
 				if err != nil {
 					return "", fmt.Errorf("%w", err)
 				}
@@ -87,7 +88,7 @@ func FindUserData() (string, error) {
 			if device.Children != nil {
 				for _, child := range device.Children {
 					if child.Mountpoints != nil {
-						filePath, err = SearchMountpoints(child.Mountpoints)
+						filePath, err = SearchMountpoints(child.Mountpoints, fileName)
 						if err != nil {
 							return "", fmt.Errorf("%w", err)
 						}
