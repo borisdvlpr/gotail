@@ -1,3 +1,5 @@
+// Package input provides utility functions for user input and system checks.
+// It includes functions to check for root privileges and prompt the user for input.
 package input
 
 import (
@@ -10,6 +12,9 @@ import (
 	"syscall"
 )
 
+// CheckRoot checks if the current user has root privileges.
+// If not, it re-executes the script with sudo.
+// If the sudo command is not found or fails, an error is return.
 func CheckRoot() error {
 	if os.Geteuid() == 0 {
 		return nil
@@ -31,6 +36,9 @@ func CheckRoot() error {
 	return nil
 }
 
+// PromptUser prompts the user with the given prompt string and reads the input from stdin.
+// If allowedReplies is provided, it ensures the user's input is one of the allowed replies.
+// It returns the user's input or an error if reading from stdin fails.
 func PromptUser(prompt string, allowedReplies []string) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 

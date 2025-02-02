@@ -8,6 +8,9 @@ import (
 	"strings"
 )
 
+// BlockDevices is the representation of the block devices on a Linux
+// system as returned by the `lsblk` command, containing information about each block device.
+// If the block device has children (e.g., partitions), they are also included with similar information.
 type BlockDevices struct {
 	Blockdevices []struct {
 		Name        string   `json:"name"`
@@ -29,6 +32,9 @@ type BlockDevices struct {
 	} `json:"blockdevices"`
 }
 
+// ListBlockDevices returns a list of block devices on a Linux system by executing the
+// `lsblk` command with the `--json` flag, parsing it's output into a BlockDevices struct.
+// If the command execution or JSON parsing fails, an error is returned.
 func ListBlockDevices() (BlockDevices, error) {
 	lsblkCmd := exec.Command("lsblk", "--json")
 	lsblkOut, err := lsblkCmd.Output()
@@ -44,6 +50,10 @@ func ListBlockDevices() (BlockDevices, error) {
 	return lsblk, nil
 }
 
+// SearchMountpoints searches for the "user-data" file in the provided
+// mountpoints iterating over them, ignoring certain paths.
+// For valid mountpoints, it calls GetFilePath to find the "user-data" file.
+// If the file is found, its path is returned. If an error occurs during the search, it is returned.
 func SearchMountpoints(mountpoints []string) (string, error) {
 	ignorePaths := []string{"/boot", "/home", "/snap"}
 

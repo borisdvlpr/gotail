@@ -1,3 +1,7 @@
+// Package file implements utility routines for file operations and system interactions.
+//
+// It provides functions to search for files, list block devices, and search mountpoints on
+// both MacOS and Linux systems.
 package file
 
 import (
@@ -8,6 +12,10 @@ import (
 	"strings"
 )
 
+// GetFilePath searches for a file with the specified name starting from the rootDir.
+// It traverses the directory tree and returns the path of the first matching file found.
+// Hidden directories and files are skipped during the search.
+// If the file is found, its path is returned. If an error occurs during the search, it is returned.
 func GetFilePath(rootDir string, fileName string) (string, error) {
 	var filePath string
 
@@ -39,6 +47,10 @@ func GetFilePath(rootDir string, fileName string) (string, error) {
 	return filePath, nil
 }
 
+// FindUserData searches for the config file on the system.
+// On macOS, it searches within the "/Volumes" directory.
+// On Linux, it lists block devices and searches their mountpoints and their children mountpoints.
+// If the file is found, its path is returned. If an error occurs during the search, it is returned.
 func FindUserData() (string, error) {
 	var filePath string
 	var err error
