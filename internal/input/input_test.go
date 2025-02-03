@@ -26,7 +26,7 @@ func TestPromptUser(t *testing.T) {
 
 	answer, err := PromptUser("Would you like this device to be an exit node?", []string{"y", "n"})
 	if err != nil {
-		t.Errorf("promptUser() error = %v, wantErr %v", err, false)
+		t.Errorf("promptUser() error = %v, wantErr %v", err, nil)
 	}
 
 	if answer != "y" {
