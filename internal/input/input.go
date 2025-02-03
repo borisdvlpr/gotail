@@ -56,10 +56,10 @@ func PromptUser(prompt string, allowedReplies []string) (string, error) {
 
 		answer = strings.TrimSpace(answer)
 
-		if slices.Contains(allowedReplies, answer) || len(allowedReplies) == 0 {
-			return answer, nil
+		if !slices.Contains(allowedReplies, answer) && len(allowedReplies) != 0 {
+			return "", fmt.Errorf("abort")
 		}
 
-		fmt.Println("Option not available. Please try again.")
+		return answer, nil
 	}
 }
