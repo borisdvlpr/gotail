@@ -10,6 +10,8 @@ import (
 	"slices"
 	"strings"
 	"syscall"
+
+	ierror "github.com/borisdvlpr/gotail/internal/error"
 )
 
 // CheckRoot checks if the current user has root privileges.
@@ -57,7 +59,7 @@ func PromptUser(prompt string, allowedReplies []string) (string, error) {
 		answer = strings.TrimSpace(answer)
 
 		if !slices.Contains(allowedReplies, answer) && len(allowedReplies) != 0 {
-			return "", fmt.Errorf("abort")
+			return "", ierror.StatusError{Status: "abort", StatusCode: 1}
 		}
 
 		return answer, nil
