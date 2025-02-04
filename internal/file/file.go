@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	ierror "github.com/borisdvlpr/gotail/internal/error"
 )
 
 // GetFilePath searches for a file with the specified name starting from the rootDir.
@@ -102,5 +104,6 @@ func FindUserData() (string, error) {
 		}
 	}
 
-	return "", nil
+	status := fmt.Sprintf("cannot access %s: could not find %s file, please try again", fileName, fileName)
+	return "", ierror.StatusError{Status: status, StatusCode: 2}
 }

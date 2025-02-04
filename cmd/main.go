@@ -2,17 +2,24 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
+	ierror "github.com/borisdvlpr/gotail/internal/error"
 	"github.com/borisdvlpr/gotail/internal/file"
 	"github.com/borisdvlpr/gotail/internal/input"
 )
 
 func handleError(err error) {
 	if err != nil {
-		fmt.Println("error:", err)
+		fmt.Println("error:", err.Error())
+
+		var statusErr ierror.StatusError
+		if errors.As(err, &statusErr) {
+			os.Exit(statusErr.StatusCode)
+		}
 		os.Exit(1)
 	}
 }
@@ -30,11 +37,6 @@ func main() {
 
 	filePath, err := file.FindUserData()
 	handleError(err)
-
-	if filePath == "" {
-		fmt.Println("Could not find 'user-data' file. Please try removing your SD card and re-inserting it.")
-		os.Exit(1)
-	}
 
 	fmt.Printf("Found 'user-data' file at '%s'.\n", filePath)
 
