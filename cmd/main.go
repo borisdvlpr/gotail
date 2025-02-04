@@ -63,7 +63,7 @@ func main() {
 
 	configs = append(configs, fmt.Sprintf("  - [ %s ]\n", strings.Join(flags, ", ")))
 
-	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
+	initFile, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
 	handleError(err)
 
 	defer func(file *os.File) {
@@ -71,9 +71,9 @@ func main() {
 		if err != nil {
 			handleError(err)
 		}
-	}(file)
+	}(initFile)
 
-	writer := bufio.NewWriter(file)
+	writer := bufio.NewWriter(initFile)
 	for _, config := range configs {
 		_, err = writer.WriteString(config)
 		handleError(err)
