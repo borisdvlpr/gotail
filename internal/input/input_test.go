@@ -1,9 +1,12 @@
 package input
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
+
+	ierror "github.com/borisdvlpr/gotail/internal/error"
 )
 
 type PromptUserTestCase struct {
@@ -11,6 +14,7 @@ type PromptUserTestCase struct {
 	input          string
 	allowedInputs  []string
 	expectedAnswer string
+	expectedError  error
 }
 
 func TestPromptUser(t *testing.T) {
@@ -18,8 +22,9 @@ func TestPromptUser(t *testing.T) {
 	defer func() { os.Stdin = defaultStdin }()
 
 	testCases := []PromptUserTestCase{
-		{"case01", "y\n", []string{"y", "n"}, "y"},
-		{"case02", "tskey_test_1234_5678\n", nil, "tskey_test_1234_5678"},
+		{"case01", "y\n", []string{"y", "n"}, "y", nil},
+		{"case02", "tskey_test_1234_5678\n", nil, "tskey_test_1234_5678", nil},
+		{"case03", "asdf\n", []string{"y", "n"}, "y", ierror.StatusError{Status: "abort", StatusCode: 1}},
 	}
 
 	for _, tc := range testCases {
@@ -41,11 +46,11 @@ func TestPromptUser(t *testing.T) {
 		answer, err := PromptUser(tc.id, tc.allowedInputs)
 		fmt.Println("")
 
-		if err != nil {
-			t.Errorf("promptUser() error = %v, wantErr %v", err, nil)
+		if !errors.Is(err, tc.expectedError) {
+			t.Errorf("promptUser() error = %v, wantErr %v", err, tc.expectedError)
 		}
 
-		if answer != tc.expectedAnswer {
+		if tc.expectedError == nil && answer != tc.expectedAnswer {
 			t.Errorf("promptUser() = %v, want %v", answer, tc.expectedAnswer)
 		}
 	}
