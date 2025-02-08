@@ -39,7 +39,7 @@ func main() {
 
 	fmt.Printf("Found 'user-data' file at '%s'.\n", filePath)
 
-	exitNode, err := input.PromptUser("Would you like this device to be an exit node?", []string{"y", "n"})
+	exitNode, err := input.PromptUser("Setup device as an exit node?", []string{"y", "n"})
 	handleError(err)
 
 	if exitNode == "y" {
@@ -47,11 +47,11 @@ func main() {
 		fmt.Println("This device will be an exit node.")
 	}
 
-	subRouter, err := input.PromptUser("Configure device as a subnet router?", []string{"y", "n"})
+	subRouter, err := input.PromptUser("Setup device as a subnet router?", []string{"y", "n"})
 	handleError(err)
 
 	if subRouter == "y" {
-		subnets, err := input.PromptUser("Please input your subnets:", nil)
+		subnets, err := input.PromptUser("Please enter your subnets (comma separated):", nil)
 		handleError(err)
 		configs = append(configs, `  - [ sh, -c, echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && sudo sysctl -p /etc/sysctl.d/99-tailscale.conf ]`+"\n")
 		flags = append(flags, fmt.Sprintf("--advertise-routes=%s", subnets))
