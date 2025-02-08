@@ -29,7 +29,6 @@ func main() {
 	configs := []string{
 		"runcmd:\n",
 		`  - [ sh, -c, curl -fsSL https://tailscale.com/install.sh | sh ]` + "\n",
-		`  - [ sh, -c, echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && sudo sysctl -p /etc/sysctl.d/99-tailscale.conf ]` + "\n",
 	}
 
 	err := input.CheckRoot()
@@ -48,9 +47,15 @@ func main() {
 		fmt.Println("This device will be an exit node.")
 	}
 
-	authKey, err := input.PromptUser("Please enter your Tailscale authkey:", nil)
+	subRouter, err := input.PromptUser("Configure device as a subnet router?", []string{"y", "n"})
 	handleError(err)
-	flags = append(flags, fmt.Sprintf("--authkey=%s", authKey))
+
+	if subRouter == "y" {
+		subnets, err := input.PromptUser("Please input your subnets:", nil)
+		handleError(err)
+		configs = append(configs, `  - [ sh, -c, echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && sudo sysctl -p /etc/sysctl.d/99-tailscale.conf ]`+"\n")
+		flags = append(flags, fmt.Sprintf("--advertise-routes=%s", subnets))
+	}
 
 	hostName, err := input.PromptUser("Please enter a hostname for this device:", nil)
 	handleError(err)
@@ -59,6 +64,10 @@ func main() {
 		flags = append(flags, fmt.Sprintf("--hostname=%s", hostName))
 		configs = append(configs, fmt.Sprintf(`  - [ sh, -c, sudo hostnamectl hostname %s ]`+"\n", hostName))
 	}
+
+	authKey, err := input.PromptUser("Please enter your Tailscale authkey:", nil)
+	handleError(err)
+	flags = append(flags, fmt.Sprintf("--authkey=%s", authKey))
 	fmt.Println("Adding Tailscale to 'user-data' file.")
 
 	configs = append(configs, fmt.Sprintf("  - [ %s ]\n", strings.Join(flags, ", ")))
