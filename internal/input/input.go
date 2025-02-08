@@ -1,5 +1,6 @@
 // Package input provides utility functions for user input and system checks.
-// It includes functions to check for root privileges and prompt the user for input.
+// It includes functions to check for root privileges, prompt the user for input
+// and validate prompted inputs.
 package input
 
 import (
@@ -44,24 +45,22 @@ func CheckRoot() error {
 func PromptUser(prompt string, allowedReplies []string) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 
-	for {
-		if allowedReplies != nil {
-			fmt.Printf("%s [%s] ", prompt, strings.Join(allowedReplies, "/"))
-		} else {
-			fmt.Printf("%s ", prompt)
-		}
-
-		answer, err := reader.ReadString('\n')
-		if err != nil {
-			return "", fmt.Errorf("%w", err)
-		}
-
-		answer = strings.TrimSpace(answer)
-
-		if !slices.Contains(allowedReplies, answer) && len(allowedReplies) != 0 {
-			return "", ierror.StatusError{Status: "abort", StatusCode: 1}
-		}
-
-		return answer, nil
+	if allowedReplies != nil {
+		fmt.Printf("%s [%s] ", prompt, strings.Join(allowedReplies, "/"))
+	} else {
+		fmt.Printf("%s ", prompt)
 	}
+
+	answer, err := reader.ReadString('\n')
+	if err != nil {
+		return "", fmt.Errorf("%w", err)
+	}
+
+	answer = strings.TrimSpace(answer)
+
+	if !slices.Contains(allowedReplies, answer) && len(allowedReplies) != 0 {
+		return "", ierror.StatusError{Status: "abort", StatusCode: 1}
+	}
+
+	return answer, nil
 }
