@@ -22,9 +22,9 @@ func TestPromptUser(t *testing.T) {
 	defer func() { os.Stdin = defaultStdin }()
 
 	testCases := []PromptUserTestCase{
-		{"case01", "y\n", []string{"y", "n"}, "y", nil},
-		{"case02", "tskey_test_1234_5678\n", nil, "tskey_test_1234_5678", nil},
-		{"case03", "asdf\n", []string{"y", "n"}, "y", ierror.StatusError{Status: "abort", StatusCode: 1}},
+		{id: "case_01", input: "y\n", allowedInputs: []string{"y", "n"}, expectedAnswer: "y", expectedError: nil},
+		{id: "case_02", input: "tskey_test_1234_5678\n", allowedInputs: nil, expectedAnswer: "tskey_test_1234_5678", expectedError: nil},
+		{id: "case_03", input: "asdf\n", allowedInputs: []string{"y", "n"}, expectedAnswer: "y", expectedError: ierror.StatusError{Status: "abort", StatusCode: 1}},
 	}
 
 	for _, tc := range testCases {
@@ -47,11 +47,11 @@ func TestPromptUser(t *testing.T) {
 		fmt.Println("")
 
 		if !errors.Is(err, tc.expectedError) {
-			t.Errorf("promptUser() error = %v, wantErr %v", err, tc.expectedError)
+			t.Errorf("PromptUser() error = %v, wantErr %v", err, tc.expectedError)
 		}
 
 		if tc.expectedError == nil && answer != tc.expectedAnswer {
-			t.Errorf("promptUser() = %v, want %v", answer, tc.expectedAnswer)
+			t.Errorf("PromptUser() = %v, want %v", answer, tc.expectedAnswer)
 		}
 	}
 }
