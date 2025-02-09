@@ -1,7 +1,7 @@
 name: Pull Request
 
 on:
-  pull_requests:
+  pull_request:
     branch: [ "main" ]
 
 jobs:
