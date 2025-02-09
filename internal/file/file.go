@@ -19,7 +19,7 @@ import (
 // Hidden directories and files are skipped during the search.
 // If the file is found, its path is returned. If an error occurs during the search, it is returned.
 func GetFilePath(rootDir string, fileName string) (string, error) {
-	var filePath string
+	filePath := ""
 
 	err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
