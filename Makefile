@@ -34,7 +34,7 @@ build:
 		exit 1; \
 	fi
 		
-build-linux-amd64: 
+build-linux-amd64: check-go
 	@echo "Building linux amd64 binary..."
 	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${BINARY_NAME}-linux-amd64 ${MAIN_PATH}
 	@echo "Build completed."
