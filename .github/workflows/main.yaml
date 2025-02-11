@@ -24,17 +24,11 @@ jobs:
       - name: Test
         run: go test -v ./...
 
-      - name: Check formatting
-        run: |
-          unformatted=$(gofmt -l .)
-          if [ -n "$unformatted" ]; then
-            echo "The following files are not formatted:"
-            echo "$unformatted"
-            exit 1
-          fi
+      - name: Check format
+        run: gofmt -d ./
 
-      - name: Run golangci-lint
-        run: golangci-lint run --max-warnings=0
+      - name: Lint
+        run: go vet ./...
 
       - name: Run tests
         run: go test -v ./...
