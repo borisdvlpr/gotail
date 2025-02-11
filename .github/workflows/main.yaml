@@ -1,0 +1,119 @@
+name: Gotail Pipeline
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Check format
+        run: gofmt -d ./
+
+      - name: Lint
+        run: go vet ./...
+
+      - name: Run tests
+        run: go test -v ./...
+  
+  build-linux-amd64:
+    name: Build linux amd64
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build
+        run: make build-linux-amd64
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gotail-amd64
+          path: bin/gotail-linux-amd64
+          retention-days: 1
+  
+  build-linux-arm64:
+    name: Build linux arm64
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build
+        run: make build-linux-arm64
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gotail-arm64
+          path: bin/gotail-linux-arm64
+          retention-days: 1
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [ build-linux-amd64, build-linux-arm64 ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download artifacts for linux amd64
+        uses: actions/download-artifact@v4
+        with:
+          name: gotail-amd64
+          path: bin/gotail-linux-amd64
+
+      - name: Download build artifacts for linux arm64
+        uses: actions/download-artifact@v4
+        with:
+          name: gotail-arm64
+          path: bin/gotail-linux-arm64
+
+      - name: Create Release
+        uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          release-type: go
+
+      - name: Upload artifact linux amd64
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ steps.release.outputs.tag_name }} ./gotail-amd64
+
+      - name: Upload artifact linux arm64
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ steps.release.outputs.tag_name }} ./gotail-arm64
