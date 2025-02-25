@@ -110,10 +110,10 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ steps.release.outputs.tag_name }} ./gotail-amd64
+        run: gh release upload ${{ steps.release.outputs.tag_name }} bin/gotail-linux-amd64
 
       - name: Upload artifact linux arm64
         if: ${{ steps.release.outputs.release_created }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ steps.release.outputs.tag_name }} ./gotail-arm64
+        run: gh release upload ${{ steps.release.outputs.tag_name }} bin/gotail-linux-arm64
