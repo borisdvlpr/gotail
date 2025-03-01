@@ -110,7 +110,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [ build-linux-amd64, build-linux-arm64 ]
+    needs: [ build-linux-amd64, build-linux-arm64, build-macos-arm64 ]
 
     steps:
       - name: Checkout repository
@@ -133,6 +133,12 @@ jobs:
         with:
           name: gotail-linux-arm64
           path: bin/gotail-linux-arm64
+
+      - name: Download build artifacts for macOS arm64
+        uses: actions/download-artifact@v4
+        with:
+          name: gotail-macos-arm64
+          path: bin/gotail-macos-arm64
 
       - name: Create Release
         id: create_release
