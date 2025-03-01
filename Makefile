@@ -48,3 +48,27 @@ build-macos-arm64: check-go
 	@echo "Building macOS arm64 binary..."
 	@CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version=$$(cat version.txt)" -o ${BINARY_NAME}-darwin-arm64 ${MAIN_PATH}
 	@echo "Build completed."
+
+install:
+	@if [ ! -d "$$HOME/.local/bin" ]; then mkdir -p "$$HOME/.local/bin"; fi;
+
+	@if [ "$$(uname -s)" = "Linux" ]; then \
+		if [ "$$(uname -m)" = "x86_64" ]; then \
+			cp bin/gotail-linux-amd64 $$HOME/.local/bin/gotail; \
+		elif [ "$$(uname -m)" = "aarch64" ]; then \
+			cp bin/gotail-linux-arm64 $$HOME/.local/bin/gotail; \
+		else \
+			echo "Unsupported Linux architecture: $$(uname -m)"; \
+			exit 1; \
+		fi; \
+	elif [ "$$(uname -s)" = "Darwin" ]; then \
+		if [ "$$(uname -m)" = "arm64" ]; then \
+			cp bin/gotail-darwin-arm64 $$HOME/.local/bin/gotail; \
+		else \
+			echo "Unsupported macOS architecture: $$(uname -m)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "Unsupported operating system: $$(uname -s)"; \
+		exit 1; \
+	fi
