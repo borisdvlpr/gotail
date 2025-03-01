@@ -3,7 +3,7 @@
 MAIN_PATH=.
 BINARY_NAME=bin/gotail
 
-all: clean build install
+all: build install
 
 check-go:
 	@echo "Cheking Go..."
