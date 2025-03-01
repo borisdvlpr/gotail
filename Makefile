@@ -3,7 +3,7 @@
 MAIN_PATH=.
 BINARY_NAME=bin/gotail
 
-all: build
+all: clean build install
 
 check-go:
 	@echo "Cheking Go..."
@@ -50,6 +50,7 @@ build-macos-arm64: check-go
 	@echo "Build completed."
 
 install:
+	@echo "Installing gotail on $$HOME/.local/bin..."
 	@if [ ! -d "$$HOME/.local/bin" ]; then mkdir -p "$$HOME/.local/bin"; fi;
 
 	@if [ "$$(uname -s)" = "Linux" ]; then \
@@ -72,3 +73,7 @@ install:
 		echo "Unsupported operating system: $$(uname -s)"; \
 		exit 1; \
 	fi
+
+clean:
+	@echo "Cleaning local installation..."
+	@go clean && rm -r bin/	&& rm ~/.local/bin/gotail
