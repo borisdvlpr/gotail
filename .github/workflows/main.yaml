@@ -83,6 +83,30 @@ jobs:
           path: bin/gotail-linux-arm64
           retention-days: 1
 
+  build-macos-arm64:
+    name: Build macOS arm64
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build
+        run: make build-macos-arm64
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gotail-macos-arm64
+          path: bin/gotail-macos-arm64
+          retention-days: 1
+
   release:
     name: Release
     runs-on: ubuntu-latest
@@ -139,4 +163,14 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./bin/gotail-linux-arm64/gotail-linux-arm64
           asset_name: gotail-linux-arm64
+          asset_content_type: application/octet-stream
+
+      - name: Upload macOS arm64 binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/gotail-macos-arm64/gotail-macos-arm64
+          asset_name: gotail-macos-arm64
           asset_content_type: application/octet-stream
