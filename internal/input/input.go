@@ -23,7 +23,7 @@ func CheckRoot() error {
 		return nil
 	}
 
-	fmt.Println("This script must be run as root. Re-executing with sudo...")
+	fmt.Println("Setup must be run as root. Re-executing with sudo...")
 
 	sudoPath, err := exec.LookPath("sudo")
 	if err != nil {
