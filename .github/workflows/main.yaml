@@ -4,9 +4,10 @@ on:
     branches: [ main ]
     paths:
       - '.github/**'
-      - 'cmd/**'
-      - 'internal/**'
+      - '**.go'
       - 'go.mod'
+      - 'Makefile'
+      - 'version.txt'
 
 permissions:
   contents: write
