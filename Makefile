@@ -64,7 +64,7 @@ install:
 		fi; \
 	elif [ "$$(uname -s)" = "Darwin" ]; then \
 		if [ "$$(uname -m)" = "arm64" ]; then \
-			cp bin/gotail-darwin-arm64 $$HOME/.local/bin/gotail; \
+			cp bin/gotail-macos-arm64 $$HOME/.local/bin/gotail; \
 		else \
 			echo "Unsupported macOS architecture: $$(uname -m)"; \
 			exit 1; \
