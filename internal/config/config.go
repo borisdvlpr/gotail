@@ -1,9 +1,9 @@
 package config
 
 type Config struct {
-	ExitNode     bool   `mapstructure:"exit_node"`
-	SubnetRouter bool   `mapstructure:"subnet_router"`
-	Subnets      string `mapstructure:"subnets"`
-	Hostname     string `mapstructure:"hostname"`
-	AuthKey      string `mapstructure:"auth_key"`
+	ExitNode     bool   `yaml:"exit_node"`
+	SubnetRouter bool   `yaml:"subnet_router"`
+	Subnets      string `yaml:"subnets"`
+	Hostname     string `yaml:"hostname"`
+	AuthKey      string `yaml:"auth_key"`
 }
