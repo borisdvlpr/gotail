@@ -27,7 +27,11 @@ Bootstrap Tailscale into your Raspberry Pi and join it to your tailnet automatic
 
 ## Configuring a new device
 
-After installing `gotail`, run the setup command to configure a new device:
+After installing `gotail`, you have two options to configure a new device:
+
+### Interactive Setup
+
+Run the setup command to configure a new device interactively:
 
 ```sh
 sudo gotail setup
@@ -39,9 +43,29 @@ If you're running directly with Go:
 sudo go run main.go setup
 ```
 
-Once you run the setup command, answer the prompts to configure Tailscale. One of the prompts will request an auth key, which you can generate from your [Tailscale admin console](https://login.tailscale.com/admin/settings/keys).
+Once you run the setup command, answer the prompts to configure Tailscale.
 
-When your Rasbperry Pi boots up, you should see it in your admin console's [machines](https://login.tailscale.com/admin/machines) page and you should be able to use to [Tailscale SSH](https://tailscale.com/tailscale-ssh/) to connect to it
+### Configuration File
+
+Alternatively, you can create a YAML configuration file with your settings:
+
+```yaml
+exit_node: n          # 'y' to enable exit node functionality
+subnet_router: n      # 'y' to enable subnet router functionality
+subnets: ""           # comma-separated list of subnets (required if subnet_router is 'y')
+hostname: raspberrypi # hostname for your device
+auth_key: tskey_1234  # your Tailscale auth key
+```
+
+Save this file and provide its path when running `gotail`:
+
+```sh
+sudo gotail setup --config /path/to/config.yaml
+```
+
+When using gotail with a configuration file or on interactivr mode, an auth key will be required, which you can generate from your [Tailscale admin console](https://login.tailscale.com/admin/settings/keys).
+
+When your Raspberry Pi boots up, you should see it in your admin console's [machines](https://login.tailscale.com/admin/machines) page and you should be able to use [Tailscale SSH](https://tailscale.com/tailscale-ssh/) to connect to it:
 
 ```sh
 tailscale ssh ubuntu@<hostname>

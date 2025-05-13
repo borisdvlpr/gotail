@@ -41,6 +41,9 @@ func TestGetFilePath(t *testing.T) {
 			t.Errorf("%v: GetFilePath() path = %v, wantPath %v", tc.id, err, tc.expectedPath)
 		}
 
-		os.RemoveAll(tempDir)
+		err = os.RemoveAll(tempDir)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 	}
 }

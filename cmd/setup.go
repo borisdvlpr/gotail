@@ -7,11 +7,16 @@ import (
 	"os"
 	"strings"
 
+	"github.com/borisdvlpr/gotail/internal/config"
 	ierror "github.com/borisdvlpr/gotail/internal/error"
 	"github.com/borisdvlpr/gotail/internal/file"
 	"github.com/borisdvlpr/gotail/internal/input"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
+
+var ConfigPath string
 
 func handleError(err error) {
 	if err != nil {
@@ -31,10 +36,11 @@ var setupCmd = &cobra.Command{
 	Short: "Setup Tailscale on a new device",
 	Run: func(cmd *cobra.Command, args []string) {
 		flags := []string{"tailscale", "up", "--ssh"}
-		configs := []string{
+		initConfig := []string{
 			"runcmd:\n",
 			`  - [ sh, -c, curl -fsSL https://tailscale.com/install.sh | sh ]` + "\n",
 		}
+		config := &config.Config{}
 
 		err := input.CheckRoot()
 		handleError(err)
@@ -44,40 +50,56 @@ var setupCmd = &cobra.Command{
 
 		fmt.Printf("Found 'user-data' file at '%s'.\n", filePath)
 
-		exitNode, err := input.PromptUser("Setup device as an exit node?", []string{"y", "n"})
+		confPath := viper.GetString("file")
+		if confPath != "" {
+			configFile, err := os.ReadFile(confPath)
+			handleError(err)
+			err = yaml.Unmarshal(configFile, &config)
+			handleError(err)
+
+		} else {
+			config.ExitNode, err = input.PromptUser("Setup device as an exit node?", []string{"y", "n"})
+			handleError(err)
+
+			config.SubnetRouter, err = input.PromptUser("Setup device as a subnet router?", []string{"y", "n"})
+			handleError(err)
+
+			if config.SubnetRouter == "y" {
+				config.Subnets, err = input.PromptUser("Please enter your subnets (comma separated):", nil)
+				handleError(err)
+			}
+
+			config.Hostname, err = input.PromptUser("Please enter a hostname for this device:", nil)
+			handleError(err)
+
+			config.AuthKey, err = input.PromptUser("Please enter your Tailscale authkey:", nil)
+			handleError(err)
+		}
+
+		err = config.Validate()
 		handleError(err)
 
-		if exitNode == "y" {
+		if config.ExitNode == "y" {
 			flags = append(flags, "--advertise-exit-node")
 			fmt.Println("This device will be an exit node.")
 		}
 
-		subRouter, err := input.PromptUser("Setup device as a subnet router?", []string{"y", "n"})
-		handleError(err)
-
-		if subRouter == "y" {
-			subnets, err := input.PromptUser("Please enter your subnets (comma separated):", nil)
+		if config.SubnetRouter == "y" && config.Subnets != "" {
+			err = input.ValidateSubnets(config.Subnets)
 			handleError(err)
-			err = input.ValidateSubnets(subnets)
-			handleError(err)
-			configs = append(configs, `  - [ sh, -c, echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && sudo sysctl -p /etc/sysctl.d/99-tailscale.conf ]`+"\n")
-			flags = append(flags, fmt.Sprintf("--advertise-routes=%s", subnets))
+			initConfig = append(initConfig, `  - [ sh, -c, echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && sudo sysctl -p /etc/sysctl.d/99-tailscale.conf ]`+"\n")
+			flags = append(flags, fmt.Sprintf("--advertise-routes=%s", config.Subnets))
 		}
 
-		hostName, err := input.PromptUser("Please enter a hostname for this device:", nil)
-		handleError(err)
-
-		if hostName != "" {
-			flags = append(flags, fmt.Sprintf("--hostname=%s", hostName))
-			configs = append(configs, fmt.Sprintf(`  - [ sh, -c, sudo hostnamectl hostname %s ]`+"\n", hostName))
+		if config.Hostname != "" {
+			flags = append(flags, fmt.Sprintf("--hostname=%s", config.Hostname))
+			initConfig = append(initConfig, fmt.Sprintf(`  - [ sh, -c, sudo hostnamectl hostname %s ]`+"\n", config.Hostname))
 		}
 
-		authKey, err := input.PromptUser("Please enter your Tailscale authkey:", nil)
-		handleError(err)
-		flags = append(flags, fmt.Sprintf("--authkey=%s", authKey))
+		flags = append(flags, fmt.Sprintf("--authkey=%s", config.AuthKey))
 		fmt.Println("Adding Tailscale to 'user-data' file.")
 
-		configs = append(configs, fmt.Sprintf("  - [ %s ]\n", strings.Join(flags, ", ")))
+		initConfig = append(initConfig, fmt.Sprintf("  - [ %s ]\n", strings.Join(flags, ", ")))
 
 		initFile, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
 		handleError(err)
@@ -90,8 +112,8 @@ var setupCmd = &cobra.Command{
 		}(initFile)
 
 		writer := bufio.NewWriter(initFile)
-		for _, config := range configs {
-			_, err = writer.WriteString(config)
+		for _, conf := range initConfig {
+			_, err = writer.WriteString(conf)
 			handleError(err)
 		}
 
@@ -102,5 +124,7 @@ var setupCmd = &cobra.Command{
 }
 
 func init() {
+	setupCmd.PersistentFlags().StringVarP(&ConfigPath, "file", "f", "", "path to the config file")
+	viper.BindPFlag("file", setupCmd.PersistentFlags().Lookup("file"))
 	rootCmd.AddCommand(setupCmd)
 }
