@@ -1,6 +1,6 @@
 package config
 
-import "errors"
+import ierr "github.com/borisdvlpr/gotail/internal/error"
 
 type Config struct {
 	ExitNode     string `yaml:"exit_node"`
@@ -12,15 +12,15 @@ type Config struct {
 
 func (c *Config) Validate() error {
 	if c.AuthKey == "" {
-		return errors.New("auth_key is required")
+		return ierr.StatusError{Status: "auth key is required", StatusCode: 1}
 	}
 
 	if c.SubnetRouter == "y" && c.Subnets == "" {
-		return errors.New("subnets are required when subnet_router is enabled")
+		return ierr.StatusError{Status: "subnets are required when subnet router is enabled", StatusCode: 1}
 	}
 
 	if c.Hostname == "" {
-		return errors.New("hostname is required")
+		return ierr.StatusError{Status: "hostname is required", StatusCode: 1}
 	}
 
 	return nil
