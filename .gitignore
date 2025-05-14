@@ -5,6 +5,7 @@
 *.so
 *.dylib
 /bin
+dist/
 
 # test binary, built with `go test -c`
 *.test
@@ -24,4 +25,4 @@ go.work.sum
 
 # editor
 .vscode
-.idea/*
+.zed
