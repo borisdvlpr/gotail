@@ -60,7 +60,7 @@ auth_key: tskey_1234  # your Tailscale auth key
 Save this file and provide its path when running `gotail`:
 
 ```sh
-sudo gotail setup --config /path/to/config.yaml
+sudo gotail setup --file /path/to/config.yaml
 ```
 
 When using gotail with a configuration file or on interactivr mode, an auth key will be required, which you can generate from your [Tailscale admin console](https://login.tailscale.com/admin/settings/keys).
