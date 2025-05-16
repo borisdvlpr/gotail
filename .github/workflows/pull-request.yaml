@@ -2,27 +2,16 @@ name: Pull Request
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-
-      - name: Check format
-        run: gofmt -d ./
-
-      - name: Lint
-        run: go vet ./...
-
-      - name: Run tests
-        run: go test -v ./...
+      - name: Test
+        uses: ./.github/actions/test
