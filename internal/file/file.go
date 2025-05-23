@@ -76,6 +76,10 @@ func FindUserData() (string, error) {
 		}
 
 		for _, device := range devices.Blockdevices {
+			if device.Type == "loop" {
+				continue
+			}
+
 			if device.Mountpoints != nil {
 				filePath, err = SearchMountpoints(device.Mountpoints, fileName)
 				if err != nil {
