@@ -14,10 +14,18 @@ import (
 	ierror "github.com/borisdvlpr/gotail/internal/error"
 )
 
-// GetFilePath searches for a file with the specified name starting from the rootDir.
-// It traverses the directory tree and returns the path of the first matching file found.
-// Hidden directories and files are skipped during the search.
-// If the file is found, its path is returned. If an error occurs during the search, it is returned.
+// SearchResult represents the outcome of a file search operation, containing either
+// the path where the file was found or an error that occurred during the search process.
+// It's used primarily for concurrent file search operations across multiple locations.
+type SearchResult struct {
+	Path string
+	Err  error
+}
+
+// GetFilePath searches for a file with the specified name starting from the rootDir. It
+// traverses the directory tree and returns the path of the first matching file found.
+// Hidden directories and files are skipped during the search. If the file is found, its
+// path is returned. If an error occurs during the search, it is returned.
 func GetFilePath(rootDir string, fileName string) (string, error) {
 	filePath := ""
 
@@ -70,6 +78,9 @@ func FindUserData() (string, error) {
 	}
 
 	if runtime.GOOS == "linux" {
+		searchChan := make(chan SearchResult)
+		var searchCount int
+
 		devices, err := ListBlockDevices()
 		if err != nil {
 			return "", fmt.Errorf("%w", err)
@@ -81,29 +92,31 @@ func FindUserData() (string, error) {
 			}
 
 			if device.Mountpoints != nil {
-				filePath, err = SearchMountpoints(device.Mountpoints, fileName)
-				if err != nil {
-					return "", fmt.Errorf("%w", err)
-				}
-
-				if filePath != "" {
-					return filePath, nil
-				}
+				searchCount++
+				go SearchMountpoints(device.Mountpoints, fileName, searchChan)
 			}
 
 			if device.Children != nil {
 				for _, child := range device.Children {
 					if child.Mountpoints != nil {
-						filePath, err = SearchMountpoints(child.Mountpoints, fileName)
-						if err != nil {
-							return "", fmt.Errorf("%w", err)
-						}
-
-						if filePath != "" {
-							return filePath, nil
-						}
+						searchCount++
+						go SearchMountpoints(child.Mountpoints, fileName, searchChan)
 					}
 				}
+			}
+		}
+
+		results := make([]SearchResult, searchCount)
+
+		for _, result := range results {
+			result = <-searchChan
+
+			if result.Err != nil {
+				return "", fmt.Errorf("%w", result.Err)
+			}
+
+			if result.Path != "" {
+				return result.Path, nil
 			}
 		}
 	}
