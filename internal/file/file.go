@@ -81,7 +81,6 @@ func FindUserData() (string, error) {
 	if runtime.GOOS == "linux" {
 		searchChan := make(chan SearchResult)
 		var wg sync.WaitGroup
-		var searchCount int
 
 		devices, err := ListBlockDevices()
 		if err != nil {
@@ -95,7 +94,6 @@ func FindUserData() (string, error) {
 
 			if device.Mountpoints != nil {
 				wg.Add(1)
-				searchCount++
 				go func(mounts []string) {
 					defer wg.Done()
 					SearchMountpoints(mounts, fileName, searchChan)
@@ -106,7 +104,6 @@ func FindUserData() (string, error) {
 				for _, child := range device.Children {
 					if child.Mountpoints != nil {
 						wg.Add(1)
-						searchCount++
 						go func(mounts []string) {
 							defer wg.Done()
 							SearchMountpoints(mounts, fileName, searchChan)
