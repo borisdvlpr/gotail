@@ -67,10 +67,12 @@ func SearchMountpoints(mountpoints []string, fileName string, c chan SearchResul
 				filePath, err := GetFilePath(mountpoint, fileName)
 				if err != nil {
 					c <- SearchResult{Path: "", Err: fmt.Errorf("%w", err)}
+					return
 				}
 
 				if filePath != "" {
 					c <- SearchResult{Path: filePath, Err: nil}
+					return
 				}
 			}
 		}
