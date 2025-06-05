@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 
 	ierror "github.com/borisdvlpr/gotail/internal/error"
 )
@@ -79,6 +80,7 @@ func FindUserData() (string, error) {
 
 	if runtime.GOOS == "linux" {
 		searchChan := make(chan SearchResult)
+		var wg sync.WaitGroup
 		var searchCount int
 
 		devices, err := ListBlockDevices()
@@ -92,25 +94,34 @@ func FindUserData() (string, error) {
 			}
 
 			if device.Mountpoints != nil {
+				wg.Add(1)
 				searchCount++
-				go SearchMountpoints(device.Mountpoints, fileName, searchChan)
+				go func(mounts []string) {
+					defer wg.Done()
+					SearchMountpoints(mounts, fileName, searchChan)
+				}(device.Mountpoints)
 			}
 
 			if device.Children != nil {
 				for _, child := range device.Children {
 					if child.Mountpoints != nil {
+						wg.Add(1)
 						searchCount++
-						go SearchMountpoints(child.Mountpoints, fileName, searchChan)
+						go func(mounts []string) {
+							defer wg.Done()
+							SearchMountpoints(mounts, fileName, searchChan)
+						}(child.Mountpoints)
 					}
 				}
 			}
 		}
 
-		results := make([]SearchResult, searchCount)
+		go func() {
+			wg.Wait()
+			close(searchChan)
+		}()
 
-		for _, result := range results {
-			result = <-searchChan
-
+		for result := range searchChan {
 			if result.Err != nil {
 				return "", fmt.Errorf("%w", result.Err)
 			}
