@@ -67,7 +67,8 @@ func FindUserData() (string, error) {
 	var filePath string
 	var err error
 
-	if runtime.GOOS == "darwin" {
+	switch runtime.GOOS {
+	case "darwin":
 		filePath, err = GetFilePath("/Volumes", fileName)
 		if err != nil {
 			return "", fmt.Errorf("%w", err)
@@ -76,9 +77,8 @@ func FindUserData() (string, error) {
 		if filePath != "" {
 			return filePath, nil
 		}
-	}
 
-	if runtime.GOOS == "linux" {
+	case "linux":
 		searchChan := make(chan SearchResult)
 		var wg sync.WaitGroup
 
@@ -127,6 +127,10 @@ func FindUserData() (string, error) {
 				return result.Path, nil
 			}
 		}
+
+	default:
+		status := fmt.Sprintf("unsupported operating system: %s", runtime.GOOS)
+		return "", ierror.StatusError{Status: status, StatusCode: 71} // EX_OSERR
 	}
 
 	status := fmt.Sprintf("cannot access %s: could not find %s file, please try again", fileName, fileName)
