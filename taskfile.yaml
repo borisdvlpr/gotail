@@ -1,0 +1,92 @@
+version: '3'
+
+silent: true
+
+vars:
+  MAIN_PATH: .
+  BINARY_NAME: bin/gotail
+  VERSION: '{{.VERSION | default "$(cat version.txt)"}}'
+
+tasks:
+  check-go:
+    desc: Check if Go is installed
+    cmds:
+      - echo "Checking Go..."
+      - |
+        if ! command -v go >/dev/null 2>&1; then
+          echo "Error: Go is not installed. Please install Go before proceeding."
+          exit 1
+        else
+          echo "Go version $(go version | awk '{print substr($3, 3)}') is installed at $(which go)."
+        fi
+
+  build:
+    desc: Build binary for current platform
+    cmds:
+      - task: build-{{OS}}-{{ARCH}}
+
+  build-linux-amd64:
+    desc: Build binary for Linux AMD64
+    deps: [check-go]
+    cmds:
+      - echo "Building linux amd64 binary..."
+      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}" -o {{.BINARY_NAME}}-linux-amd64 {{.MAIN_PATH}}
+      - echo "Build completed."
+
+  build-linux-arm64:
+    desc: Build binary for Linux ARM64
+    deps: [check-go]
+    cmds:
+      - echo "Building linux arm64 binary..."
+      - CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}" -o {{.BINARY_NAME}}-linux-arm64 {{.MAIN_PATH}}
+      - echo "Build completed."
+
+  build-darwin-arm64:
+    desc: Build binary for macOS ARM64
+    deps: [check-go]
+    cmds:
+      - echo "Building macOS arm64 binary..."
+      - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}" -o {{.BINARY_NAME}}-macos-arm64 {{.MAIN_PATH}}
+      - echo "Build completed."
+
+  install:
+    desc: Install binary to local path
+    cmds:
+      - echo "Installing gotail on $HOME/.local/bin..."
+      - mkdir -p $HOME/.local/bin
+      - |
+        if [ "{{OS}}" = "linux" ]; then
+          if [ "{{ARCH}}" = "amd64" ]; then
+            cp {{.BINARY_NAME}}-linux-amd64 $HOME/.local/bin/gotail
+          elif [ "{{ARCH}}" = "arm64" ]; then
+            cp {{.BINARY_NAME}}-linux-arm64 $HOME/.local/bin/gotail
+          else
+            echo "Unsupported Linux architecture: {{ARCH}}"
+            exit 1
+          fi
+        elif [ "{{OS}}" = "darwin" ]; then
+          if [ "{{ARCH}}" = "arm64" ]; then
+            cp {{.BINARY_NAME}}-macos-arm64 $HOME/.local/bin/gotail
+          else
+            echo "Unsupported macOS architecture: {{ARCH}}"
+            exit 1
+          fi
+        else
+          echo "Unsupported operating system: {{OS}}"
+          exit 1
+        fi
+      - echo "gotail installed successfully."
+
+  clean:
+    desc: Clean up build artifacts and local installation
+    cmds:
+      - echo "Cleaning local installation..."
+      - go clean
+      - rm -rf bin/
+      - rm -f $HOME/.local/bin/gotail
+
+  all:
+    desc: Build and install the application
+    deps: [build]
+    cmds:
+      - task: install
