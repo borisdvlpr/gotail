@@ -30,9 +30,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set version file
-        run: echo "${{ github.ref_name }}" > version.txt
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
