@@ -20,6 +20,13 @@ tasks:
           echo "Go version $(go version | awk '{print substr($3, 3)}') is installed at $(which go)."
         fi
 
+  test:
+    desc: Run all tests
+    cmds:
+      - echo "Running unit tests..."
+      - go test ./... -v 2>&1 || (echo "Tests failed." && exit 1)
+      - echo "Tests passed."
+
   build:
     desc: Build binary for current platform
     cmds:
