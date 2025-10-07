@@ -5,7 +5,7 @@ silent: true
 vars:
   MAIN_PATH: .
   BINARY_NAME: bin/gotail
-  VERSION: '{{.VERSION | default "$(cat version.txt)"}}'
+  VERSION: '{{.VERSION | default "$(cat version.txt)"}}-snapshot'
 
 tasks:
   check-go:
