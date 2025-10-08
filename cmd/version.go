@@ -15,7 +15,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show the version of your CLI tool",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("gotail %s\n", version)
+		fmt.Fprintf(cmd.OutOrStdout(), "gotail %s\n", version)
 	},
 }
 
