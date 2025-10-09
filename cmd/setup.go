@@ -18,9 +18,9 @@ import (
 
 var ConfigPath string
 
-func handleError(err error) {
+func handleError(cmd *cobra.Command, err error) {
 	if err != nil {
-		fmt.Println("error:", err.Error())
+		cmd.Printf("error: %s\n", err.Error())
 
 		var statusErr ierror.StatusError
 		if errors.As(err, &statusErr) {
@@ -43,50 +43,50 @@ var setupCmd = &cobra.Command{
 		config := &config.Config{}
 
 		err := input.CheckRoot()
-		handleError(err)
+		handleError(cmd, err)
 
 		filePath, err := file.FindUserData()
-		handleError(err)
+		handleError(cmd, err)
 
-		fmt.Printf("Found 'user-data' file at '%s'.\n", filePath)
+		cmd.Printf("Found 'user-data' file at '%s'.\n", filePath)
 
 		confPath := viper.GetString("file")
 		if confPath != "" {
 			configFile, err := os.ReadFile(confPath)
-			handleError(err)
+			handleError(cmd, err)
 			err = yaml.Unmarshal(configFile, &config)
-			handleError(err)
+			handleError(cmd, err)
 
 		} else {
 			config.ExitNode, err = input.PromptUser("Setup device as an exit node?", []string{"y", "n"})
-			handleError(err)
+			handleError(cmd, err)
 
 			config.SubnetRouter, err = input.PromptUser("Setup device as a subnet router?", []string{"y", "n"})
-			handleError(err)
+			handleError(cmd, err)
 
 			if config.SubnetRouter == "y" {
 				config.Subnets, err = input.PromptUser("Please enter your subnets (comma separated):", nil)
-				handleError(err)
+				handleError(cmd, err)
 			}
 
 			config.Hostname, err = input.PromptUser("Please enter a hostname for this device:", nil)
-			handleError(err)
+			handleError(cmd, err)
 
 			config.AuthKey, err = input.PromptUser("Please enter your Tailscale authkey:", nil)
-			handleError(err)
+			handleError(cmd, err)
 		}
 
 		err = config.Validate()
-		handleError(err)
+		handleError(cmd, err)
 
 		if config.ExitNode == "y" {
 			flags = append(flags, "--advertise-exit-node")
-			fmt.Println("This device will be an exit node.")
+			cmd.Println("This device will be an exit node.")
 		}
 
 		if config.SubnetRouter == "y" && config.Subnets != "" {
 			err = input.ValidateSubnets(config.Subnets)
-			handleError(err)
+			handleError(cmd, err)
 			initConfig = append(initConfig, `  - [ sh, -c, echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && sudo sysctl -p /etc/sysctl.d/99-tailscale.conf ]`+"\n")
 			flags = append(flags, fmt.Sprintf("--advertise-routes=%s", config.Subnets))
 		}
@@ -97,29 +97,29 @@ var setupCmd = &cobra.Command{
 		}
 
 		flags = append(flags, fmt.Sprintf("--authkey=%s", config.AuthKey))
-		fmt.Println("Adding Tailscale to 'user-data' file.")
+		cmd.Println("Adding Tailscale to 'user-data' file.")
 
 		initConfig = append(initConfig, fmt.Sprintf("  - [ %s ]\n", strings.Join(flags, ", ")))
 
 		initFile, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
-		handleError(err)
+		handleError(cmd, err)
 
 		defer func(file *os.File) {
 			err := file.Close()
 			if err != nil {
-				handleError(err)
+				handleError(cmd, err)
 			}
 		}(initFile)
 
 		writer := bufio.NewWriter(initFile)
 		for _, conf := range initConfig {
 			_, err = writer.WriteString(conf)
-			handleError(err)
+			handleError(cmd, err)
 		}
 
 		err = writer.Flush()
-		handleError(err)
-		fmt.Println("Tailscale will be installed on boot. Please eject your SD card and boot your Raspberry Pi.")
+		handleError(cmd, err)
+		cmd.Println("Tailscale will be installed on boot. Please eject your SD card and boot your Raspberry Pi.")
 	},
 }
 
