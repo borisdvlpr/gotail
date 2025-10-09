@@ -30,7 +30,14 @@ func CheckRoot() error {
 		return fmt.Errorf("%w", err)
 	}
 
-	args := append([]string{"sudo"}, os.Args...)
+	execPath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %w", err)
+	}
+
+	args := []string{"sudo", execPath}
+	args = append(args, os.Args[1:]...)
+
 	err = syscall.Exec(sudoPath, args, os.Environ())
 	if err != nil {
 		return fmt.Errorf("failed to execute sudo: %w", err)
