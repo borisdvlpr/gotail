@@ -39,3 +39,27 @@ func TestVersionCommandOutput(t *testing.T) {
 		t.Errorf("Expected output '%s', got '%s'", expectedOutput, output)
 	}
 }
+
+func TestVersionCommandWithCustomVersion(t *testing.T) {
+	testRootCmd := rootCmd
+	var buf bytes.Buffer
+	originalVersion := version
+	defer func() { version = originalVersion }()
+	version = "1.2.3"
+
+	testRootCmd.SetOut(&buf)
+	testRootCmd.SetErr(&buf)
+
+	testRootCmd.SetArgs([]string{"version"})
+	err := testRootCmd.Execute()
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	output := buf.String()
+	expectedOutput := "gotail 1.2.3\n"
+
+	if output != expectedOutput {
+		t.Errorf("Expected output '%s', got '%s'", expectedOutput, output)
+	}
+}
