@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -15,5 +16,26 @@ func TestVersionCommandProperties(t *testing.T) {
 
 	if testVersionCmd.Short != cmdShort {
 		t.Errorf("Expected Short to be '%s', got '%s'", cmdShort, versionCmd.Short)
+	}
+}
+
+func TestVersionCommandOutput(t *testing.T) {
+	testRootCmd := rootCmd
+	var buf bytes.Buffer
+
+	testRootCmd.SetOut(&buf)
+	testRootCmd.SetErr(&buf)
+
+	testRootCmd.SetArgs([]string{"version"})
+	err := testRootCmd.Execute()
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	output := buf.String()
+	expectedOutput := "gotail dev\n"
+
+	if output != expectedOutput {
+		t.Errorf("Expected output '%s', got '%s'", expectedOutput, output)
 	}
 }
