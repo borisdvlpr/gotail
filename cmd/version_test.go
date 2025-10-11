@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 )
 
@@ -61,5 +62,30 @@ func TestVersionCommandWithCustomVersion(t *testing.T) {
 
 	if output != expectedOutput {
 		t.Errorf("Expected output '%s', got '%s'", expectedOutput, output)
+	}
+}
+
+func TestVersionCommandFormat(t *testing.T) {
+	testRootCmd := rootCmd
+	var buf bytes.Buffer
+
+	testRootCmd.SetOut(&buf)
+	testRootCmd.SetErr(&buf)
+
+	testRootCmd.SetArgs([]string{"version"})
+	err := testRootCmd.Execute()
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	output := strings.TrimSpace(buf.String())
+
+	if !strings.HasPrefix(output, "gotail ") {
+		t.Errorf("Expected output to start with 'gotail ', got '%s'", output)
+	}
+
+	parts := strings.Split(output, " ")
+	if len(parts) != 2 {
+		t.Errorf("Expected output format 'gotail <version>', got '%s'", output)
 	}
 }
