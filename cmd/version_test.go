@@ -12,11 +12,11 @@ func TestVersionCommandProperties(t *testing.T) {
 	cmdShort := "Show the version of your CLI tool"
 
 	if testVersionCmd.Use != cmdUse {
-		t.Errorf("Expected Use to be '%s', got '%s'", cmdUse, versionCmd.Use)
+		t.Errorf("Expected Use to be '%s', got '%s'", cmdUse, testVersionCmd.Use)
 	}
 
 	if testVersionCmd.Short != cmdShort {
-		t.Errorf("Expected Short to be '%s', got '%s'", cmdShort, versionCmd.Short)
+		t.Errorf("Expected Short to be '%s', got '%s'", cmdShort, testVersionCmd.Short)
 	}
 }
 
