@@ -4,7 +4,19 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
+
+func setupTestCommand() (*cobra.Command, *bytes.Buffer) {
+	testRootCmd := rootCmd
+	var buf bytes.Buffer
+
+	testRootCmd.SetOut(&buf)
+	testRootCmd.SetErr(&buf)
+
+	return testRootCmd, &buf
+}
 
 func TestVersionCommandProperties(t *testing.T) {
 	testVersionCmd := versionCmd
@@ -21,11 +33,7 @@ func TestVersionCommandProperties(t *testing.T) {
 }
 
 func TestVersionCommandOutput(t *testing.T) {
-	testRootCmd := rootCmd
-	var buf bytes.Buffer
-
-	testRootCmd.SetOut(&buf)
-	testRootCmd.SetErr(&buf)
+	testRootCmd, buf := setupTestCommand()
 
 	testRootCmd.SetArgs([]string{"version"})
 	err := testRootCmd.Execute()
@@ -42,14 +50,11 @@ func TestVersionCommandOutput(t *testing.T) {
 }
 
 func TestVersionCommandWithCustomVersion(t *testing.T) {
-	testRootCmd := rootCmd
-	var buf bytes.Buffer
+	testRootCmd, buf := setupTestCommand()
+
 	originalVersion := version
 	defer func() { version = originalVersion }()
 	version = "1.2.3"
-
-	testRootCmd.SetOut(&buf)
-	testRootCmd.SetErr(&buf)
 
 	testRootCmd.SetArgs([]string{"version"})
 	err := testRootCmd.Execute()
@@ -66,11 +71,7 @@ func TestVersionCommandWithCustomVersion(t *testing.T) {
 }
 
 func TestVersionCommandFormat(t *testing.T) {
-	testRootCmd := rootCmd
-	var buf bytes.Buffer
-
-	testRootCmd.SetOut(&buf)
-	testRootCmd.SetErr(&buf)
+	testRootCmd, buf := setupTestCommand()
 
 	testRootCmd.SetArgs([]string{"version"})
 	err := testRootCmd.Execute()
