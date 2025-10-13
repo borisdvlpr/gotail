@@ -8,12 +8,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func setupTestCommand() (*cobra.Command, *bytes.Buffer) {
+func makeVersionCommand() (*cobra.Command, *bytes.Buffer) {
 	testRootCmd := rootCmd
 	var buf bytes.Buffer
 
 	testRootCmd.SetOut(&buf)
 	testRootCmd.SetErr(&buf)
+	testRootCmd.SetArgs([]string{"version"})
 
 	return testRootCmd, &buf
 }
@@ -33,9 +34,8 @@ func TestVersionCommandProperties(t *testing.T) {
 }
 
 func TestVersionCommandOutput(t *testing.T) {
-	testRootCmd, buf := setupTestCommand()
+	testRootCmd, buf := makeVersionCommand()
 
-	testRootCmd.SetArgs([]string{"version"})
 	err := testRootCmd.Execute()
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -43,20 +43,18 @@ func TestVersionCommandOutput(t *testing.T) {
 
 	output := buf.String()
 	expectedOutput := "gotail dev\n"
-
 	if output != expectedOutput {
 		t.Errorf("Expected output '%s', got '%s'", expectedOutput, output)
 	}
 }
 
 func TestVersionCommandWithCustomVersion(t *testing.T) {
-	testRootCmd, buf := setupTestCommand()
+	testRootCmd, buf := makeVersionCommand()
 
 	originalVersion := version
 	defer func() { version = originalVersion }()
 	version = "1.2.3"
 
-	testRootCmd.SetArgs([]string{"version"})
 	err := testRootCmd.Execute()
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -64,23 +62,20 @@ func TestVersionCommandWithCustomVersion(t *testing.T) {
 
 	output := buf.String()
 	expectedOutput := "gotail 1.2.3\n"
-
 	if output != expectedOutput {
 		t.Errorf("Expected output '%s', got '%s'", expectedOutput, output)
 	}
 }
 
 func TestVersionCommandFormat(t *testing.T) {
-	testRootCmd, buf := setupTestCommand()
+	testRootCmd, buf := makeVersionCommand()
 
-	testRootCmd.SetArgs([]string{"version"})
 	err := testRootCmd.Execute()
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
 	output := strings.TrimSpace(buf.String())
-
 	if !strings.HasPrefix(output, "gotail ") {
 		t.Errorf("Expected output to start with 'gotail ', got '%s'", output)
 	}
