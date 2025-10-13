@@ -1,6 +1,22 @@
 package cmd
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+
+	"github.com/spf13/cobra"
+)
+
+func makeSetupCommand() (*cobra.Command, *bytes.Buffer) {
+	testRootCmd := rootCmd
+	var buf bytes.Buffer
+
+	testRootCmd.SetOut(&buf)
+	testRootCmd.SetErr(&buf)
+	testRootCmd.SetArgs([]string{"setup"})
+
+	return testRootCmd, &buf
+}
 
 func TestSetupCommandProperties(t *testing.T) {
 	testSetupCmd := setupCmd
