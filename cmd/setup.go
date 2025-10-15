@@ -11,6 +11,7 @@ import (
 	ierror "github.com/borisdvlpr/gotail/internal/error"
 	"github.com/borisdvlpr/gotail/internal/file"
 	"github.com/borisdvlpr/gotail/internal/input"
+	"github.com/borisdvlpr/gotail/internal/system"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
@@ -42,7 +43,7 @@ var setupCmd = &cobra.Command{
 		}
 		config := &config.Config{}
 
-		err := input.CheckRoot()
+		err := system.CheckRoot()
 		handleError(cmd, err)
 
 		filePath, err := file.FindUserData()
