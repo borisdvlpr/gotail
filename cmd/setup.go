@@ -18,6 +18,7 @@ import (
 )
 
 var ConfigPath string
+var rootChecker system.RootChecker = system.DefaultRootChecker{}
 
 func handleError(cmd *cobra.Command, err error) {
 	if err != nil {
@@ -43,7 +44,7 @@ var setupCmd = &cobra.Command{
 		}
 		config := &config.Config{}
 
-		err := system.CheckRoot()
+		err := rootChecker.CheckRoot()
 		handleError(cmd, err)
 
 		filePath, err := file.FindUserData()

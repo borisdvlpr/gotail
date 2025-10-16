@@ -9,10 +9,16 @@ import (
 	"syscall"
 )
 
+type RootChecker interface {
+	CheckRoot() error
+}
+
+type DefaultRootChecker struct{}
+
 // CheckRoot checks if the current user has root privileges.
 // If not, it re-executes the script with sudo.
 // If the sudo command is not found or fails, an error is return.
-func CheckRoot() error {
+func (DefaultRootChecker) CheckRoot() error {
 	if os.Geteuid() == 0 {
 		return nil
 	}
