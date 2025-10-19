@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+
+	ierror "github.com/borisdvlpr/gotail/internal/error"
 )
 
 type RootChecker interface {
@@ -27,12 +29,14 @@ func (DefaultRootChecker) CheckRoot() error {
 
 	sudoPath, err := exec.LookPath("sudo")
 	if err != nil {
-		return fmt.Errorf("%w", err)
+		status := fmt.Sprintf("%s", err)
+		return ierror.StatusError{Status: status, StatusCode: 127}
 	}
 
 	execPath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to get executable path: %w", err)
+		status := fmt.Sprintf("failed to get executable path: %s", err)
+		return ierror.StatusError{Status: status, StatusCode: 1}
 	}
 
 	args := []string{"sudo", execPath}
@@ -40,7 +44,8 @@ func (DefaultRootChecker) CheckRoot() error {
 
 	err = syscall.Exec(sudoPath, args, os.Environ())
 	if err != nil {
-		return fmt.Errorf("failed to execute sudo: %w", err)
+		status := fmt.Sprintf("failed to execute sudo: %s", err)
+		return ierror.StatusError{Status: status, StatusCode: 126}
 	}
 
 	return nil
