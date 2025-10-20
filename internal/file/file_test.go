@@ -14,8 +14,16 @@ type GetFilePathTestCase struct {
 
 func TestGetFilePath(t *testing.T) {
 	testCases := []GetFilePathTestCase{
-		{id: "case_01", file: "user-data", expectedPath: "file-test-dir/user-data"},
-		{id: "case_02", file: "", expectedPath: ""},
+		{
+			id:           "case_01",
+			file:         "user-data",
+			expectedPath: "file-test-dir/user-data",
+		},
+		{
+			id:           "case_02",
+			file:         "",
+			expectedPath: "",
+		},
 	}
 
 	for _, tc := range testCases {
