@@ -15,3 +15,9 @@ func (m MockRootChecker) CheckRoot() error {
 	}
 	return nil
 }
+
+type MockRootCheckerTestCase struct {
+	id            string
+	checker       MockRootChecker
+	expectedError error
+}
