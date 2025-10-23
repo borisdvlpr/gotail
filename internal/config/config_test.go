@@ -66,6 +66,5 @@ func TestConfigValidate(t *testing.T) {
 		if tc.expectedError != nil && !errors.Is(err, tc.expectedError) {
 			t.Errorf("%v: Validate() returned error %q, expected %q", tc.id, err.Error(), tc.expectedError)
 		}
-
 	}
 }
