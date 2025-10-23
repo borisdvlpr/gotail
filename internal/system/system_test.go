@@ -61,7 +61,7 @@ func TestMockRootChecker(t *testing.T) {
 			t.Errorf("%v: TestMockRootChecker() returned no error, expected error containing %q", tc.id, tc.expectedError)
 		}
 
-		if tc.expectedError != nil && !errors.Is(err, tc.expectedError) {
+		if tc.expectedError != nil && err != nil && !errors.Is(err, tc.expectedError) {
 			t.Errorf("%v: TestMockRootChecker() returned error %q, expected %q", tc.id, err, tc.expectedError)
 		}
 	}

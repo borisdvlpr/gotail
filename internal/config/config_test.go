@@ -63,8 +63,8 @@ func TestConfigValidate(t *testing.T) {
 			t.Errorf("%v: Validate() returned no error, expected error containing %q", tc.id, tc.expectedError)
 		}
 
-		if tc.expectedError != nil && !errors.Is(err, tc.expectedError) {
-			t.Errorf("%v: Validate() returned error %q, expected %q", tc.id, err.Error(), tc.expectedError)
+		if tc.expectedError != nil && err != nil && !errors.Is(err, tc.expectedError) {
+			t.Errorf("%v: Validate() returned error %q, expected %q", tc.id, err, tc.expectedError)
 		}
 	}
 }

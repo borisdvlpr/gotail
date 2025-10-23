@@ -65,7 +65,7 @@ func TestPromptUser(t *testing.T) {
 		fmt.Println("")
 
 		if !errors.Is(err, tc.expectedError) {
-			t.Errorf("PromptUser() error = %v, wantErr %v", err, tc.expectedError)
+			t.Errorf("PromptUser() error = %q, wantErr %q", err, tc.expectedError)
 		}
 
 		if tc.expectedError == nil && answer != tc.expectedAnswer {

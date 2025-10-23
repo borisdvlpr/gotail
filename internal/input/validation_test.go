@@ -80,7 +80,7 @@ func TestValidateSubnet(t *testing.T) {
 	for _, tc := range testCases {
 		err := ValidateSubnets(tc.subnet)
 		if !errors.Is(err, tc.expectedError) {
-			t.Errorf("%v: ValidateSubnets() error = %v, wantErr %v", tc.id, err, tc.expectedError)
+			t.Errorf("%v: ValidateSubnets() error = %q, wantErr %q", tc.id, err, tc.expectedError)
 		}
 	}
 }
