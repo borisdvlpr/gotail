@@ -7,6 +7,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type MockRootChecker struct {
+	shouldError bool
+}
+
+func (m MockRootChecker) CheckRoot() error {
+	errorMsg := "default check root error"
+
+	if m.shouldError {
+		return ierror.StatusError{Status: errorMsg, StatusCode: 1}
+	}
+
+	execPath := "fake/path/to/executable"
+	args := []string{"sudo", execPath}
+	args = append(args, os.Args[1:]...)
+
+	return nil
+}
+
 func makeSetupCommand() (*cobra.Command, *bytes.Buffer) {
 	testRootCmd := rootCmd
 	var buf bytes.Buffer
