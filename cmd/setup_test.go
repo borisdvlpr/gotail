@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"bytes"
+	"os"
 	"testing"
 
+	ierror "github.com/borisdvlpr/gotail/internal/error"
 	"github.com/spf13/cobra"
 )
 
