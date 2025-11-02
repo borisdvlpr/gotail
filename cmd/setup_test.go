@@ -62,11 +62,11 @@ func TestSetupCommandNoRoot(t *testing.T) {
 
 	err := testSetupCmd.Execute()
 	if err == nil {
-		t.Fatalf("Expected error %v, got nil", err)
+		t.Errorf("Expected error %v, got nil", err)
 	}
 
 	output := strings.TrimSpace(buf.String())
 	if !strings.Contains(output, "Error: default check root error") {
-		t.Fatalf("Expected output to be 'default check root error', got '%s'", output)
+		t.Errorf("Expected output to be 'Error: default check root error', got '%s'", output)
 	}
 }
