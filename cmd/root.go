@@ -14,6 +14,7 @@ var rootCmd = &cobra.Command{
 	Short: "Bootstrap Tailscale into your Raspberry Pi",
 	Long: `gotail is a CLI for bootstrapping Tailscale on a Raspberry Pi, 
 automatically adding it to a tailnet from first boot.`,
+	SilenceUsage: true,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -21,8 +22,6 @@ automatically adding it to a tailnet from first boot.`,
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		rootCmd.Printf("error: %s\n", err.Error())
-
 		var statusErr ierror.StatusError
 		if errors.As(err, &statusErr) {
 			os.Exit(statusErr.StatusCode)
