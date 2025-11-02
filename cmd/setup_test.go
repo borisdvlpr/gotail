@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 
 	ierror "github.com/borisdvlpr/gotail/internal/error"
@@ -49,5 +50,23 @@ func TestSetupCommandProperties(t *testing.T) {
 
 	if testSetupCmd.Short != cmdShort {
 		t.Errorf("Expected Short to be '%s', got '%s'", cmdShort, testSetupCmd.Short)
+	}
+}
+
+func TestSetupCommandNoRoot(t *testing.T) {
+	testSetupCmd, buf := makeSetupCommand()
+
+	originalChecker := rootChecker
+	defer func() { rootChecker = originalChecker }()
+	rootChecker = MockRootChecker{shouldError: true}
+
+	err := testSetupCmd.Execute()
+	if err == nil {
+		t.Fatalf("Expected error %v, got nil", err)
+	}
+
+	output := strings.TrimSpace(buf.String())
+	if !strings.Contains(output, "Error: default check root error") {
+		t.Fatalf("Expected output to be 'default check root error', got '%s'", output)
 	}
 }
