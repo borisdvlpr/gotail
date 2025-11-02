@@ -10,12 +10,14 @@ import (
 	ierror "github.com/borisdvlpr/gotail/internal/error"
 	"github.com/borisdvlpr/gotail/internal/file"
 	"github.com/borisdvlpr/gotail/internal/input"
+	"github.com/borisdvlpr/gotail/internal/system"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
 )
 
 var ConfigPath string
+var rootChecker system.RootChecker = system.DefaultRootChecker{}
 
 // setupCmd represents the setup command
 var setupCmd = &cobra.Command{
@@ -29,7 +31,7 @@ var setupCmd = &cobra.Command{
 		}
 		config := &config.Config{}
 
-		if err := input.CheckRoot(); err != nil {
+		if err := rootChecker.CheckRoot(); err != nil {
 			return err
 		}
 
@@ -38,7 +40,7 @@ var setupCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Found 'user-data' file at '%s'.\n", filePath)
+		cmd.Printf("Found 'user-data' file at '%s'.\n", filePath)
 
 		confPath := viper.GetString("file")
 		if confPath != "" {
@@ -86,7 +88,7 @@ var setupCmd = &cobra.Command{
 
 		if config.ExitNode == "y" {
 			flags = append(flags, "--advertise-exit-node")
-			fmt.Println("This device will be an exit node.")
+			cmd.Println("This device will be an exit node.")
 		}
 
 		if config.SubnetRouter == "y" && config.Subnets != "" {
@@ -104,7 +106,7 @@ var setupCmd = &cobra.Command{
 		}
 
 		flags = append(flags, fmt.Sprintf("--authkey=%s", config.AuthKey))
-		fmt.Println("Adding Tailscale to 'user-data' file.")
+		cmd.Println("Adding Tailscale to 'user-data' file.")
 
 		initConfig = append(initConfig, fmt.Sprintf("  - [ %s ]\n", strings.Join(flags, ", ")))
 
@@ -132,7 +134,7 @@ var setupCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("Tailscale will be installed on boot. Please eject your SD card and boot your Raspberry Pi.")
+		cmd.Println("Tailscale will be installed on boot. Please eject your SD card and boot your Raspberry Pi.")
 		return nil
 	},
 }

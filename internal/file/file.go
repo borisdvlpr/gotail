@@ -130,7 +130,7 @@ func FindUserData() (string, error) {
 
 	default:
 		status := fmt.Sprintf("unsupported operating system: %s", runtime.GOOS)
-		return "", ierror.StatusError{Status: status, StatusCode: 71} // EX_OSERR
+		return "", ierror.StatusError{Status: status, StatusCode: 71}
 	}
 
 	status := fmt.Sprintf("cannot access %s: could not find %s file, please try again", fileName, fileName)
