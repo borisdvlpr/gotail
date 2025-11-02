@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 
+	ierror "github.com/borisdvlpr/gotail/internal/error"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +21,12 @@ automatically adding it to a tailnet from first boot.`,
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
+		rootCmd.Printf("error: %s\n", err.Error())
+
+		var statusErr ierror.StatusError
+		if errors.As(err, &statusErr) {
+			os.Exit(statusErr.StatusCode)
+		}
 		os.Exit(1)
 	}
 }
