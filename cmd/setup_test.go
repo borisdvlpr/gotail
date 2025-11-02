@@ -66,7 +66,27 @@ func TestSetupCommandNoRoot(t *testing.T) {
 	}
 
 	output := strings.TrimSpace(buf.String())
-	if !strings.Contains(output, "Error: default check root error") {
-		t.Errorf("Expected output to be 'Error: default check root error', got '%s'", output)
+	message := "Error: default check root error"
+	if !strings.Contains(output, message) {
+		t.Errorf("Expected output to be '%s', got '%s'", message, output)
+	}
+}
+
+func TestSetupCommandFileNotFound(t *testing.T) {
+	testSetupCmd, buf := makeSetupCommand()
+
+	originalChecker := rootChecker
+	defer func() { rootChecker = originalChecker }()
+	rootChecker = MockRootChecker{shouldError: false}
+
+	err := testSetupCmd.Execute()
+	if err == nil {
+		t.Errorf("Expected error %v, got nil", err)
+	}
+
+	output := strings.TrimSpace(buf.String())
+	message := "Error: cannot access user-data: could not find user-data file, please try again"
+	if !strings.Contains(output, message) {
+		t.Errorf("Expected output to be '%s', got '%s'", message, output)
 	}
 }
