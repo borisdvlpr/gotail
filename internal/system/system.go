@@ -11,10 +11,13 @@ import (
 	ierror "github.com/borisdvlpr/gotail/internal/error"
 )
 
+// RootChecker defines the interface for verifying if the application is currently
+// running with sufficient root or administrative privileges.
 type RootChecker interface {
 	CheckRoot() error
 }
 
+// DefaultRootChecker represents the primary implementation of the RootChecker interface
 type DefaultRootChecker struct{}
 
 // CheckRoot checks if the current user has root privileges.
