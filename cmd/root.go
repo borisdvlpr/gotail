@@ -5,6 +5,7 @@ import (
 	"os"
 
 	ierror "github.com/borisdvlpr/gotail/internal/error"
+	"github.com/borisdvlpr/gotail/internal/system"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +21,15 @@ automatically adding it to a tailnet from first boot.`,
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
+	setupDeps := SetupCommand{
+		RootChecker: system.DefaultRootChecker{},
+	}
+
+	setupCmd := NewSetupCmd(setupDeps)
+
+	rootCmd.AddCommand(setupCmd)
+
+	if err := rootCmd.Execute(); err != nil {
 		var statusErr ierror.StatusError
 		if errors.As(err, &statusErr) {
 			os.Exit(statusErr.StatusCode)
