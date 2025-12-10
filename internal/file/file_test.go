@@ -1,9 +1,10 @@
 package file
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/spf13/afero"
 )
 
 type GetFilePathTestCase struct {
@@ -27,31 +28,29 @@ func TestGetFilePath(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		fs := afero.NewMemMapFs()
+
 		tempDir := filepath.Join(".", "file-test-dir")
-		err := os.MkdirAll(tempDir, 0755)
+		err := fs.MkdirAll(tempDir, 0755)
 		if err != nil {
 			t.Fatalf("Failed to create test dir: %v", err)
 		}
 
 		testFilePath := filepath.Join(tempDir, tc.file)
 		if tc.file != "" {
-			if _, err := os.Create(testFilePath); err != nil {
+			if _, err := fs.Create(testFilePath); err != nil {
 				t.Fatalf("Failed to create test file: %v", err)
 			}
 		}
 
-		path, err := GetFilePath(tempDir, "user-data")
+		// Pass the filesystem to GetFilePath
+		path, err := GetFilePath(fs, tempDir, "user-data")
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
 
 		if path != tc.expectedPath {
-			t.Errorf("%v: GetFilePath() path = %v, wantPath %v", tc.id, err, tc.expectedPath)
-		}
-
-		err = os.RemoveAll(tempDir)
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
+			t.Errorf("%v: GetFilePath() path = %v, wantPath %v", tc.id, path, tc.expectedPath)
 		}
 	}
 }
