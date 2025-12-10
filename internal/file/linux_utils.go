@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
+
+	"github.com/spf13/afero"
 )
 
 // BlockDevices is the representation of the block devices on a Linux
@@ -32,29 +34,39 @@ type BlockDevices struct {
 	} `json:"blockdevices"`
 }
 
-// ListBlockDevices returns a list of block devices on a Linux system by executing the
+// BlockDeviceLister defines the interface for listing the block devices
+// on a Linux system.
+type BlockDeviceLister interface {
+	List() (*BlockDevices, error)
+}
+
+// DefaultBlockDeviceLister represents the primary implementation of the
+// BlockDeviceLister interface
+type DefaultBlockDeviceLister struct{}
+
+// List returns a list of block devices on a Linux system by executing the
 // `lsblk` command with the `--json` flag, parsing it's output into a BlockDevices struct.
 // If the command execution or JSON parsing fails, an error is returned.
-func ListBlockDevices() (BlockDevices, error) {
+func (r *DefaultBlockDeviceLister) List() (*BlockDevices, error) {
 	lsblkCmd := exec.Command("lsblk", "--json")
 	lsblkOut, err := lsblkCmd.Output()
 	if err != nil {
-		return BlockDevices{}, fmt.Errorf("%w", err)
+		return &BlockDevices{}, fmt.Errorf("%w", err)
 	}
 
 	var lsblk BlockDevices
 	if err = json.Unmarshal(lsblkOut, &lsblk); err != nil {
-		return BlockDevices{}, fmt.Errorf("lsblk parsing: %w", err)
+		return &BlockDevices{}, fmt.Errorf("lsblk parsing: %w", err)
 	}
 
-	return lsblk, nil
+	return &lsblk, nil
 }
 
 // SearchMountpoints searches for a file with the specified name in the
 // provided mountpoints iterating over them, ignoring certain paths.
 // For valid mountpoints, it calls GetFilePath to find the "user-data" file.
 // If the file is found, its path is returned. If an error occurs, it is returned.
-func SearchMountpoints(mountpoints []string, fileName string, c chan SearchResult) {
+func SearchMountpoints(fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
 	ignorePaths := []string{"/boot", "/home", "/snap"}
 
 	for _, mountpoint := range mountpoints {
@@ -64,7 +76,7 @@ func SearchMountpoints(mountpoints []string, fileName string, c chan SearchResul
 			})
 
 			if mountpoint != "/" && validPath {
-				filePath, err := GetFilePath(mountpoint, fileName)
+				filePath, err := GetFilePath(fs, mountpoint, fileName)
 				if err != nil {
 					c <- SearchResult{Path: "", Err: fmt.Errorf("%w", err)}
 					return

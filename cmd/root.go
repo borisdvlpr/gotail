@@ -5,7 +5,9 @@ import (
 	"os"
 
 	ierror "github.com/borisdvlpr/gotail/internal/error"
+	"github.com/borisdvlpr/gotail/internal/file"
 	"github.com/borisdvlpr/gotail/internal/system"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +15,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "gotail",
 	Short: "Bootstrap Tailscale into your Raspberry Pi",
-	Long: `gotail is a CLI for bootstrapping Tailscale on a Raspberry Pi, 
+	Long: `gotail is a CLI for bootstrapping Tailscale on a Raspberry Pi,
 automatically adding it to a tailnet from first boot.`,
 	SilenceUsage: true,
 }
@@ -21,8 +23,15 @@ automatically adding it to a tailnet from first boot.`,
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	fs := afero.NewOsFs()
+
 	setupDeps := SetupCommand{
+		Fsys:        fs,
 		RootChecker: system.DefaultRootChecker{},
+		SystemSearcher: &file.SystemSearcher{
+			Fsys:         fs,
+			DeviceLister: &file.DefaultBlockDeviceLister{},
+		},
 	}
 
 	setupCmd := NewSetupCmd(setupDeps)

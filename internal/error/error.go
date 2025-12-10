@@ -4,7 +4,8 @@
 // https://github.com/docker/cli/blob/master/cli/error.go
 package error
 
-// StatusError reports an unsuccessful exit by a command.
+// StatusError reports an unsuccessful exit by a command, with its correspondent
+// status code
 type StatusError struct {
 	Status     string
 	StatusCode int

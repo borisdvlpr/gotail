@@ -6,14 +6,23 @@ package file
 
 import (
 	"fmt"
-	"io/fs"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 
 	ierror "github.com/borisdvlpr/gotail/internal/error"
+	"github.com/spf13/afero"
 )
+
+// SystemSearcher holds the external interfaces used by the file module. It
+// provides access to a virtual filesystem and block-device listings, enabling
+// the module to inspect mountpoints and search for files within them.
+type SystemSearcher struct {
+	Fsys         afero.Fs
+	DeviceLister BlockDeviceLister
+}
 
 // SearchResult represents the outcome of a file search operation, containing either
 // the path where the file was found or an error that occurred during the search process.
@@ -27,49 +36,48 @@ type SearchResult struct {
 // traverses the directory tree and returns the path of the first matching file found.
 // Hidden directories and files are skipped during the search. If the file is found, its
 // path is returned. If an error occurs during the search, it is returned.
-func GetFilePath(rootDir string, fileName string) (string, error) {
-	filePath := ""
+func GetFilePath(fsys afero.Fs, rootDir string, fileName string) (string, error) {
+	foundPath := ""
 
-	err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
+	err := afero.Walk(fsys, rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if strings.HasPrefix(d.Name(), ".") {
-			if d.IsDir() {
-				return fs.SkipDir
+		if strings.HasPrefix(info.Name(), ".") {
+			if info.IsDir() {
+				return filepath.SkipDir
 			}
-
 			return nil
 		}
 
-		if !d.IsDir() && d.Name() == fileName {
-			filePath = path
-			return fs.SkipDir
+		if !info.IsDir() && info.Name() == fileName {
+			foundPath = path
+			return filepath.SkipDir
 		}
 
 		return nil
 	})
 
-	if err != nil {
+	if err != nil && err != filepath.SkipDir {
 		return "", fmt.Errorf("%w", err)
 	}
 
-	return filePath, nil
+	return foundPath, nil
 }
 
 // FindUserData searches for the config file on the system.
 // On macOS, it searches within the "/Volumes" directory.
 // On Linux, it lists block devices and searches their mountpoints and their children mountpoints.
 // If the file is found, its path is returned. If an error occurs during the search, it is returned.
-func FindUserData() (string, error) {
+func (s *SystemSearcher) FindUserData() (string, error) {
 	const fileName = "user-data"
 	var filePath string
 	var err error
 
 	switch runtime.GOOS {
 	case "darwin":
-		filePath, err = GetFilePath("/Volumes", fileName)
+		filePath, err = GetFilePath(s.Fsys, "/Volumes", fileName)
 		if err != nil {
 			return "", fmt.Errorf("%w", err)
 		}
@@ -82,7 +90,7 @@ func FindUserData() (string, error) {
 		searchChan := make(chan SearchResult)
 		var wg sync.WaitGroup
 
-		devices, err := ListBlockDevices()
+		devices, err := s.DeviceLister.List()
 		if err != nil {
 			return "", fmt.Errorf("%w", err)
 		}
@@ -96,7 +104,7 @@ func FindUserData() (string, error) {
 				wg.Add(1)
 				go func(mounts []string) {
 					defer wg.Done()
-					SearchMountpoints(mounts, fileName, searchChan)
+					SearchMountpoints(s.Fsys, mounts, fileName, searchChan)
 				}(device.Mountpoints)
 			}
 
@@ -106,7 +114,7 @@ func FindUserData() (string, error) {
 						wg.Add(1)
 						go func(mounts []string) {
 							defer wg.Done()
-							SearchMountpoints(mounts, fileName, searchChan)
+							SearchMountpoints(s.Fsys, mounts, fileName, searchChan)
 						}(child.Mountpoints)
 					}
 				}

@@ -11,14 +11,19 @@ import (
 	"github.com/borisdvlpr/gotail/internal/file"
 	"github.com/borisdvlpr/gotail/internal/input"
 	"github.com/borisdvlpr/gotail/internal/system"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
 )
 
-// SetupCommand holds all external system interfaces required by the setup command.
+// SetupCommand holds all external system interfaces required by the setup
+// command. It provides access to the filesystem, privilege checks, and
+// system-level search utilities needed during initialization.
 type SetupCommand struct {
-	RootChecker system.RootChecker
+	Fsys           afero.Fs
+	RootChecker    system.RootChecker
+	SystemSearcher *file.SystemSearcher
 }
 
 // NewSetupCmd creates and initializes the Cobra setup command.
@@ -40,7 +45,7 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				return err
 			}
 
-			filePath, err := file.FindUserData()
+			filePath, err := deps.SystemSearcher.FindUserData()
 			if err != nil {
 				return err
 			}
@@ -49,7 +54,7 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 
 			confPath := viper.GetString("file")
 			if confPath != "" {
-				configFile, err := os.ReadFile(confPath)
+				configFile, err := afero.ReadFile(deps.Fsys, confPath)
 				if err != nil {
 					return err
 				}
@@ -115,7 +120,7 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 
 			initConfig = append(initConfig, fmt.Sprintf("  - [ %s ]\n", strings.Join(flags, ", ")))
 
-			initFile, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
+			initFile, err := deps.Fsys.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
 			if err != nil {
 				return err
 			}
