@@ -2,91 +2,164 @@ package cmd
 
 import (
 	"bytes"
-	"os"
+	"fmt"
 	"strings"
 	"testing"
 
-	ierror "github.com/borisdvlpr/gotail/internal/error"
-	"github.com/spf13/cobra"
+	"github.com/borisdvlpr/gotail/internal/file"
+	"github.com/spf13/afero"
 )
 
+// MockRootChecker simulates checking for sudo/root permissions.
 type MockRootChecker struct {
-	shouldError bool
+	ShouldError bool
 }
 
 func (m MockRootChecker) CheckRoot() error {
-	errorMsg := "default check root error"
-
-	if m.shouldError {
-		return ierror.StatusError{Status: errorMsg, StatusCode: 1}
+	if m.ShouldError {
+		return fmt.Errorf("permission denied: must run as root")
 	}
-
-	execPath := "fake/path/to/executable"
-	args := []string{"sudo", execPath}
-	args = append(args, os.Args[1:]...)
-
 	return nil
 }
 
-func makeSetupCommand() (*cobra.Command, *bytes.Buffer) {
-	testRootCmd := rootCmd
+// MockDeviceLister simulates finding hardware devices (SD cards).
+type MockDeviceLister struct {
+	Devices *file.BlockDevices
+}
+
+func (m *MockDeviceLister) List() (*file.BlockDevices, error) {
+	if m.Devices == nil {
+		return &file.BlockDevices{}, nil
+	}
+	return m.Devices, nil
+}
+
+func TestSetup_Success(t *testing.T) {
+	mockFS := afero.NewMemMapFs()
+
+	configFile := "/tmp/config.yaml"
+	_ = afero.WriteFile(mockFS, configFile, []byte("exit_node: n\nsubnet_router: y\nsubnets: \"192.168.1.1/24,192.67.2.2/24,192.23.23.23/24\"\nhostname: raspberrypi\nauth_key: tskey_1234"), 0644)
+
+	userDataPath := "/mnt/sdcard/user-data"
+	_ = mockFS.MkdirAll("/mnt/sdcard", 0755)
+	_ = afero.WriteFile(mockFS, userDataPath, []byte("#cloud-config\n"), 0644)
+
+	mockRoot := MockRootChecker{ShouldError: false}
+	mockLister := &MockDeviceLister{
+		Devices: &file.BlockDevices{
+			Blockdevices: []struct {
+				Name        string   `json:"name"`
+				MajMin      string   `json:"maj:min"`
+				Rm          bool     `json:"rm"`
+				Size        string   `json:"size"`
+				Ro          bool     `json:"ro"`
+				Type        string   `json:"type"`
+				Mountpoints []string `json:"mountpoints"`
+				Children    []struct {
+					Name        string   `json:"name"`
+					MajMin      string   `json:"maj:min"`
+					Rm          bool     `json:"rm"`
+					Size        string   `json:"size"`
+					Ro          bool     `json:"ro"`
+					Type        string   `json:"type"`
+					Mountpoints []string `json:"mountpoints"`
+				} `json:"children,omitempty"`
+			}{
+				{
+					Name:        "mmcblk0",
+					Type:        "disk",
+					Mountpoints: []string{"/mnt/sdcard"},
+				},
+			},
+		},
+	}
+
+	setupDeps := SetupCommand{
+		Fsys:        mockFS,
+		RootChecker: mockRoot,
+		SystemSearcher: &file.SystemSearcher{
+			Fsys:         mockFS,
+			DeviceLister: mockLister,
+		},
+	}
+
+	setupCmd := NewSetupCmd(setupDeps)
+
 	var buf bytes.Buffer
+	setupCmd.SetOut(&buf)
+	setupCmd.SetErr(&buf)
+	setupCmd.SetArgs([]string{"--file", configFile})
 
-	testRootCmd.SetOut(&buf)
-	testRootCmd.SetErr(&buf)
-	testRootCmd.SetArgs([]string{"setup"})
+	err := setupCmd.Execute()
 
-	return testRootCmd, &buf
-}
-
-func TestSetupCommandProperties(t *testing.T) {
-	testSetupCmd := setupCmd
-	cmdUse := "setup"
-	cmdShort := "Setup Tailscale on a new device"
-
-	if testSetupCmd.Use != cmdUse {
-		t.Errorf("Expected Use to be '%s', got '%s'", cmdUse, testSetupCmd.Use)
+	if err != nil {
+		t.Fatalf("Expected success, but got error: %v", err)
 	}
 
-	if testSetupCmd.Short != cmdShort {
-		t.Errorf("Expected Short to be '%s', got '%s'", cmdShort, testSetupCmd.Short)
+	contentBytes, _ := afero.ReadFile(mockFS, userDataPath)
+	content := string(contentBytes)
+
+	if !strings.Contains(content, "- [ sh, -c, sudo hostnamectl hostname raspberrypi ]") {
+		t.Errorf("Expected user-data to contain hostname 'raspberrypi', got:\n%s", content)
 	}
 }
 
-func TestSetupCommandNoRoot(t *testing.T) {
-	testSetupCmd, buf := makeSetupCommand()
+func TestSetup_Fail_RootCheck(t *testing.T) {
+	mockFS := afero.NewMemMapFs()
 
-	originalChecker := rootChecker
-	defer func() { rootChecker = originalChecker }()
-	rootChecker = MockRootChecker{shouldError: true}
+	setupDeps := SetupCommand{
+		Fsys:        mockFS,
+		RootChecker: MockRootChecker{ShouldError: true},
+		SystemSearcher: &file.SystemSearcher{
+			Fsys:         mockFS,
+			DeviceLister: &MockDeviceLister{},
+		},
+	}
 
-	err := testSetupCmd.Execute()
+	setupCmd := NewSetupCmd(setupDeps)
+
+	var buf bytes.Buffer
+	setupCmd.SetOut(&buf)
+	setupCmd.SetErr(&buf)
+	setupCmd.SetArgs([]string{"--file", "dummy.yaml"})
+
+	err := setupCmd.Execute()
+
 	if err == nil {
-		t.Errorf("Expected error %v, got nil", err)
+		t.Error("Expected error due to root check, got nil")
 	}
 
-	output := strings.TrimSpace(buf.String())
-	message := "Error: default check root error"
-	if !strings.Contains(output, message) {
-		t.Errorf("Expected output to be '%s', got '%s'", message, output)
+	if err != nil && !strings.Contains(err.Error(), "permission denied") {
+		t.Errorf("Expected 'permission denied' error, got: %v", err)
 	}
 }
 
-func TestSetupCommandFileNotFound(t *testing.T) {
-	testSetupCmd, buf := makeSetupCommand()
+func TestSetup_Fail_FileNotFound(t *testing.T) {
+	mockFS := afero.NewMemMapFs()
 
-	originalChecker := rootChecker
-	defer func() { rootChecker = originalChecker }()
-	rootChecker = MockRootChecker{shouldError: false}
-
-	err := testSetupCmd.Execute()
-	if err == nil {
-		t.Errorf("Expected error %v, got nil", err)
+	setupDeps := SetupCommand{
+		Fsys:        mockFS,
+		RootChecker: MockRootChecker{ShouldError: false},
+		SystemSearcher: &file.SystemSearcher{
+			Fsys:         mockFS,
+			DeviceLister: &MockDeviceLister{Devices: nil},
+		},
 	}
 
-	output := strings.TrimSpace(buf.String())
-	message := "Error: cannot access user-data: could not find user-data file, please try again"
-	if !strings.Contains(output, message) {
-		t.Errorf("Expected output to be '%s', got '%s'", message, output)
+	setupCmd := NewSetupCmd(setupDeps)
+
+	var buf bytes.Buffer
+	setupCmd.SetOut(&buf)
+	setupCmd.SetErr(&buf)
+	setupCmd.SetArgs([]string{"--file", "dummy.yaml"})
+
+	err := setupCmd.Execute()
+
+	if err == nil {
+		t.Error("Expected error because user-data file is missing, got nil")
+	}
+
+	if err != nil && !strings.Contains(err.Error(), "cannot access user-data") {
+		t.Errorf("Expected 'cannot access user-data' error, got: %v", err)
 	}
 }
