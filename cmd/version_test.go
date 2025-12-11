@@ -19,7 +19,7 @@ func makeVersionCommand() (*cobra.Command, *bytes.Buffer) {
 	return testRootCmd, &buf
 }
 
-func TestVersionCommandProperties(t *testing.T) {
+func TestVersion_CommandProperties(t *testing.T) {
 	testVersionCmd := versionCmd
 	cmdUse := "version"
 	cmdShort := "Show the version of your CLI tool"
@@ -33,7 +33,7 @@ func TestVersionCommandProperties(t *testing.T) {
 	}
 }
 
-func TestVersionCommandOutput(t *testing.T) {
+func TestVersion_CommandOutput(t *testing.T) {
 	testRootCmd, buf := makeVersionCommand()
 
 	err := testRootCmd.Execute()
@@ -48,7 +48,7 @@ func TestVersionCommandOutput(t *testing.T) {
 	}
 }
 
-func TestVersionCommandWithCustomVersion(t *testing.T) {
+func TestVersion_CommandWithCustomVersion(t *testing.T) {
 	testRootCmd, buf := makeVersionCommand()
 
 	originalVersion := version
@@ -67,7 +67,7 @@ func TestVersionCommandWithCustomVersion(t *testing.T) {
 	}
 }
 
-func TestVersionCommandFormat(t *testing.T) {
+func TestVersion_CommandFormat(t *testing.T) {
 	testRootCmd, buf := makeVersionCommand()
 
 	err := testRootCmd.Execute()
