@@ -87,7 +87,6 @@ tasks:
     desc: Clean up build artifacts and local installation
     cmds:
       - echo "Cleaning local installation..."
-      - go clean
       - rm -rf bin/
       - rm -f $HOME/.local/bin/gotail
 
