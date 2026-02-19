@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -69,8 +70,14 @@ func (r *DefaultBlockDeviceLister) List() (*BlockDevices, error) {
 func SearchMountpoints(fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
 	ignorePaths := []string{"/boot", "/home", "/snap"}
 
+	pathRegexp := regexp.MustCompile(`^/[^\x00-\x1f\x7f]*$`)
+
 	for _, mountpoint := range mountpoints {
 		if mountpoint != "" {
+			if !pathRegexp.MatchString(mountpoint) {
+				return
+			}
+
 			validPath := !slices.ContainsFunc(ignorePaths, func(s string) bool {
 				return strings.HasPrefix(mountpoint, s)
 			})
