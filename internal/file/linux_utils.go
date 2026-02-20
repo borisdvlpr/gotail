@@ -68,7 +68,7 @@ func (r *DefaultBlockDeviceLister) List() (*BlockDevices, error) {
 // For valid mountpoints, it calls GetFilePath to find the "user-data" file.
 // If the file is found, its path is returned. If an error occurs, it is returned.
 func SearchMountpoints(fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
-	ignorePaths := []string{"/boot", "/home", "/snap"}
+	validMountPrefixes := []string{"/run/media", "/media", "/mnt"}
 
 	pathRegexp := regexp.MustCompile(`^/[^\x00-\x1f\x7f]*$`)
 
@@ -78,7 +78,7 @@ func SearchMountpoints(fs afero.Fs, mountpoints []string, fileName string, c cha
 				return
 			}
 
-			validPath := !slices.ContainsFunc(ignorePaths, func(s string) bool {
+			validPath := slices.ContainsFunc(validMountPrefixes, func(s string) bool {
 				return strings.HasPrefix(mountpoint, s)
 			})
 
