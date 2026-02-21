@@ -79,7 +79,7 @@ func SearchMountpoints(ctx context.Context, fs afero.Fs, mountpoints []string, f
 		}
 
 		if !pathRegexp.MatchString(mountpoint) {
-			return
+			continue
 		}
 
 		validPath := slices.ContainsFunc(validMountPrefixes, func(s string) bool {
