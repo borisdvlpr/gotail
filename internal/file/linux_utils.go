@@ -74,34 +74,36 @@ func SearchMountpoints(ctx context.Context, fs afero.Fs, mountpoints []string, f
 	pathRegexp := regexp.MustCompile(`^/[^\x00-\x1f\x7f]*$`)
 
 	for _, mountpoint := range mountpoints {
-		if mountpoint != "" {
-			if !pathRegexp.MatchString(mountpoint) {
+		if mountpoint == "" {
+			continue
+		}
+
+		if !pathRegexp.MatchString(mountpoint) {
+			return
+		}
+
+		validPath := slices.ContainsFunc(validMountPrefixes, func(s string) bool {
+			return strings.HasPrefix(mountpoint, s)
+		})
+
+		if mountpoint != "/" && validPath {
+			filePath, err := GetFilePath(fs, mountpoint, fileName)
+			if err != nil {
+				select {
+				case c <- SearchResult{Path: "", Err: fmt.Errorf("%w", err)}:
+				case <-ctx.Done():
+				}
+
 				return
 			}
 
-			validPath := slices.ContainsFunc(validMountPrefixes, func(s string) bool {
-				return strings.HasPrefix(mountpoint, s)
-			})
-
-			if mountpoint != "/" && validPath {
-				filePath, err := GetFilePath(fs, mountpoint, fileName)
-				if err != nil {
-					select {
-					case c <- SearchResult{Path: "", Err: fmt.Errorf("%w", err)}:
-					case <-ctx.Done():
-					}
-
-					return
+			if filePath != "" {
+				select {
+				case c <- SearchResult{Path: filePath, Err: nil}:
+				case <-ctx.Done():
 				}
 
-				if filePath != "" {
-					select {
-					case c <- SearchResult{Path: filePath, Err: nil}:
-					case <-ctx.Done():
-					}
-
-					return
-				}
+				return
 			}
 		}
 	}
