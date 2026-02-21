@@ -1,6 +1,7 @@
 package file
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -9,6 +10,11 @@ import (
 	"strings"
 
 	"github.com/spf13/afero"
+)
+
+var (
+	validMountPrefixes = []string{"/run/media", "/media", "/mnt"}
+	pathRegexp         = regexp.MustCompile(`^/[^\x00-\x1f\x7f]*$`)
 )
 
 // BlockDevices is the representation of the block devices on a Linux
@@ -67,32 +73,38 @@ func (r *DefaultBlockDeviceLister) List() (*BlockDevices, error) {
 // provided mountpoints iterating over them, ignoring certain paths.
 // For valid mountpoints, it calls GetFilePath to find the "user-data" file.
 // If the file is found, its path is returned. If an error occurs, it is returned.
-func SearchMountpoints(fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
-	validMountPrefixes := []string{"/run/media", "/media", "/mnt"}
-
-	pathRegexp := regexp.MustCompile(`^/[^\x00-\x1f\x7f]*$`)
-
+func SearchMountpoints(ctx context.Context, fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
 	for _, mountpoint := range mountpoints {
-		if mountpoint != "" {
-			if !pathRegexp.MatchString(mountpoint) {
+		if mountpoint == "" {
+			continue
+		}
+
+		if !pathRegexp.MatchString(mountpoint) {
+			continue
+		}
+
+		validPath := slices.ContainsFunc(validMountPrefixes, func(s string) bool {
+			return strings.HasPrefix(mountpoint, s)
+		})
+
+		if mountpoint != "/" && validPath {
+			filePath, err := GetFilePath(fs, mountpoint, fileName)
+			if err != nil {
+				select {
+				case c <- SearchResult{Path: "", Err: fmt.Errorf("%w", err)}:
+				case <-ctx.Done():
+				}
+
 				return
 			}
 
-			validPath := slices.ContainsFunc(validMountPrefixes, func(s string) bool {
-				return strings.HasPrefix(mountpoint, s)
-			})
-
-			if mountpoint != "/" && validPath {
-				filePath, err := GetFilePath(fs, mountpoint, fileName)
-				if err != nil {
-					c <- SearchResult{Path: "", Err: fmt.Errorf("%w", err)}
-					return
+			if filePath != "" {
+				select {
+				case c <- SearchResult{Path: filePath, Err: nil}:
+				case <-ctx.Done():
 				}
 
-				if filePath != "" {
-					c <- SearchResult{Path: filePath, Err: nil}
-					return
-				}
+				return
 			}
 		}
 	}

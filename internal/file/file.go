@@ -5,6 +5,7 @@
 package file
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -87,6 +88,9 @@ func (s *SystemSearcher) FindUserData() (string, error) {
 		}
 
 	case "linux":
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
 		searchChan := make(chan SearchResult)
 		var wg sync.WaitGroup
 
@@ -104,7 +108,7 @@ func (s *SystemSearcher) FindUserData() (string, error) {
 				wg.Add(1)
 				go func(mounts []string) {
 					defer wg.Done()
-					SearchMountpoints(s.Fsys, mounts, fileName, searchChan)
+					SearchMountpoints(ctx, s.Fsys, mounts, fileName, searchChan)
 				}(device.Mountpoints)
 			}
 
@@ -114,7 +118,7 @@ func (s *SystemSearcher) FindUserData() (string, error) {
 						wg.Add(1)
 						go func(mounts []string) {
 							defer wg.Done()
-							SearchMountpoints(s.Fsys, mounts, fileName, searchChan)
+							SearchMountpoints(ctx, s.Fsys, mounts, fileName, searchChan)
 						}(child.Mountpoints)
 					}
 				}
@@ -128,10 +132,12 @@ func (s *SystemSearcher) FindUserData() (string, error) {
 
 		for result := range searchChan {
 			if result.Err != nil {
+				cancel()
 				return "", fmt.Errorf("%w", result.Err)
 			}
 
 			if result.Path != "" {
+				cancel()
 				return result.Path, nil
 			}
 		}

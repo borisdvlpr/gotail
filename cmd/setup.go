@@ -39,7 +39,7 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				"runcmd:\n",
 				`  - [ sh, -c, curl -fsSL https://tailscale.com/install.sh | sh ]` + "\n",
 			}
-			config := &config.Config{}
+			cfg := &config.Config{}
 
 			if err := deps.RootChecker.CheckRoot(); err != nil {
 				return err
@@ -59,63 +59,63 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 					return err
 				}
 
-				if err = yaml.Unmarshal(configFile, &config); err != nil {
+				if err = yaml.Unmarshal(configFile, &cfg); err != nil {
 					return err
 				}
 
 			} else {
-				config.ExitNode, err = input.PromptUser("Setup device as an exit node?", []string{"y", "n"})
+				cfg.ExitNode, err = input.PromptUser("Setup device as an exit node?", []string{"y", "n"})
 				if err != nil {
 					return err
 				}
 
-				config.SubnetRouter, err = input.PromptUser("Setup device as a subnet router?", []string{"y", "n"})
+				cfg.SubnetRouter, err = input.PromptUser("Setup device as a subnet router?", []string{"y", "n"})
 				if err != nil {
 					return err
 				}
 
-				if config.SubnetRouter == "y" {
-					config.Subnets, err = input.PromptUser("Please enter your subnets (comma separated):", nil)
+				if cfg.SubnetRouter == "y" {
+					cfg.Subnets, err = input.PromptUser("Please enter your subnets (comma separated):", nil)
 					if err != nil {
 						return err
 					}
 				}
 
-				config.Hostname, err = input.PromptUser("Please enter a hostname for this device:", nil)
+				cfg.Hostname, err = input.PromptUser("Please enter a hostname for this device:", nil)
 				if err != nil {
 					return err
 				}
 
-				config.AuthKey, err = input.PromptUser("Please enter your Tailscale authkey:", nil)
+				cfg.AuthKey, err = input.PromptUser("Please enter your Tailscale authkey:", nil)
 				if err != nil {
 					return err
 				}
 			}
 
-			if err = config.Validate(); err != nil {
+			if err = cfg.Validate(); err != nil {
 				return err
 			}
 
-			if config.ExitNode == "y" {
+			if cfg.ExitNode == "y" {
 				flags = append(flags, "--advertise-exit-node")
 				cmd.Println("This device will be an exit node.")
 			}
 
-			if config.SubnetRouter == "y" && config.Subnets != "" {
-				if err = input.ValidateSubnets(config.Subnets); err != nil {
+			if cfg.SubnetRouter == "y" && cfg.Subnets != "" {
+				if err = input.ValidateSubnets(cfg.Subnets); err != nil {
 					return err
 				}
 
 				initConfig = append(initConfig, `  - [ sh, -c, echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && sudo sysctl -p /etc/sysctl.d/99-tailscale.conf ]`+"\n")
-				flags = append(flags, fmt.Sprintf("--advertise-routes=%s", config.Subnets))
+				flags = append(flags, fmt.Sprintf("--advertise-routes=%s", cfg.Subnets))
 			}
 
-			if config.Hostname != "" {
-				flags = append(flags, fmt.Sprintf("--hostname=%s", config.Hostname))
-				initConfig = append(initConfig, fmt.Sprintf(`  - [ sh, -c, sudo hostnamectl hostname %s ]`+"\n", config.Hostname))
+			if cfg.Hostname != "" {
+				flags = append(flags, fmt.Sprintf("--hostname=%s", cfg.Hostname))
+				initConfig = append(initConfig, fmt.Sprintf(`  - [ sh, -c, sudo hostnamectl hostname %s ]`+"\n", cfg.Hostname))
 			}
 
-			flags = append(flags, fmt.Sprintf("--authkey=%s", config.AuthKey))
+			flags = append(flags, fmt.Sprintf("--authkey=%s", cfg.AuthKey))
 			cmd.Println("Adding Tailscale to 'user-data' file.")
 
 			initConfig = append(initConfig, fmt.Sprintf("  - [ %s ]\n", strings.Join(flags, ", ")))
