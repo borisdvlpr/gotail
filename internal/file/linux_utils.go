@@ -12,6 +12,11 @@ import (
 	"github.com/spf13/afero"
 )
 
+var (
+	validMountPrefixes = []string{"/run/media", "/media", "/mnt"}
+	pathRegexp         = regexp.MustCompile(`^/[^\x00-\x1f\x7f]*$`)
+)
+
 // BlockDevices is the representation of the block devices on a Linux
 // system as returned by the `lsblk` command, containing information about each block device.
 // If the block device has children (e.g., partitions), they are also included with similar information.
@@ -69,10 +74,6 @@ func (r *DefaultBlockDeviceLister) List() (*BlockDevices, error) {
 // For valid mountpoints, it calls GetFilePath to find the "user-data" file.
 // If the file is found, its path is returned. If an error occurs, it is returned.
 func SearchMountpoints(ctx context.Context, fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
-	validMountPrefixes := []string{"/run/media", "/media", "/mnt"}
-
-	pathRegexp := regexp.MustCompile(`^/[^\x00-\x1f\x7f]*$`)
-
 	for _, mountpoint := range mountpoints {
 		if mountpoint == "" {
 			continue
