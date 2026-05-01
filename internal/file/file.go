@@ -6,6 +6,7 @@ package file
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -60,7 +61,7 @@ func GetFilePath(fsys afero.Fs, rootDir string, fileName string) (string, error)
 		return nil
 	})
 
-	if err != nil && err != filepath.SkipDir {
+	if err != nil && !errors.Is(err, filepath.SkipDir) {
 		return "", fmt.Errorf("%w", err)
 	}
 
