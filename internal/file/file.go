@@ -92,7 +92,7 @@ func (s *SystemSearcher) FindUserData() (string, error) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		searchChan := make(chan SearchResult)
+		searchChan := make(chan SearchResult, 1)
 		var wg sync.WaitGroup
 
 		devices, err := s.DeviceLister.List()
