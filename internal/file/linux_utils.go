@@ -75,37 +75,44 @@ func (r *DefaultBlockDeviceLister) List() (*BlockDevices, error) {
 // If the file is found, its path is returned. If an error occurs, it is returned.
 func SearchMountpoints(ctx context.Context, fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
 	for _, mountpoint := range mountpoints {
-		if mountpoint == "" {
+		if !isMountpointSearchable(mountpoint) {
 			continue
 		}
 
-		if !pathRegexp.MatchString(mountpoint) {
-			continue
+		filePath, err := GetFilePath(fs, mountpoint, fileName)
+		if err != nil {
+			select {
+			case c <- SearchResult{Path: "", Err: fmt.Errorf("%w", err)}:
+			case <-ctx.Done():
+			}
+
+			return
 		}
 
-		validPath := slices.ContainsFunc(validMountPrefixes, func(s string) bool {
-			return strings.HasPrefix(mountpoint, s)
-		})
-
-		if mountpoint != "/" && validPath {
-			filePath, err := GetFilePath(fs, mountpoint, fileName)
-			if err != nil {
-				select {
-				case c <- SearchResult{Path: "", Err: fmt.Errorf("%w", err)}:
-				case <-ctx.Done():
-				}
-
-				return
+		if filePath != "" {
+			select {
+			case c <- SearchResult{Path: filePath, Err: nil}:
+			case <-ctx.Done():
 			}
 
-			if filePath != "" {
-				select {
-				case c <- SearchResult{Path: filePath, Err: nil}:
-				case <-ctx.Done():
-				}
-
-				return
-			}
+			return
 		}
 	}
+}
+
+// isMountpointSearchable determines whether a mountpoint is a valid candidate
+// for a file search. It rejects empty paths, the root path, paths with invalid
+// characters, and paths that don't fall under a known valid mount prefix.
+func isMountpointSearchable(mountpoint string) bool {
+	if mountpoint == "" || mountpoint == "/" {
+		return false
+	}
+
+	if !pathRegexp.MatchString(mountpoint) {
+		return false
+	}
+
+	return slices.ContainsFunc(validMountPrefixes, func(s string) bool {
+		return strings.HasPrefix(mountpoint, s)
+	})
 }
