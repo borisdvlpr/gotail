@@ -12,7 +12,7 @@ import (
 )
 
 // CheckRoot checks if the current user has root privileges. If not, it
-// re-executes the script with sudo. If the sudo command is not found or
+// re-executes the binary with sudo. If the sudo command is not found or
 // fails, an error is returned.
 func (DefaultRootChecker) CheckRoot() error {
 	if os.Geteuid() == 0 {
