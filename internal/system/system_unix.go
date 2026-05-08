@@ -1,0 +1,46 @@
+//go:build !windows
+
+package system
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"syscall"
+
+	ierror "github.com/borisdvlpr/gotail/internal/error"
+)
+
+// CheckRoot checks if the current user has root privileges. If not, it
+// re-executes the script with sudo. If the sudo command is not found or
+// fails, an error is returned.
+func (DefaultRootChecker) CheckRoot() error {
+	if os.Geteuid() == 0 {
+		return nil
+	}
+
+	fmt.Println("Setup must be run as root. Re-executing with sudo...")
+
+	sudoPath, err := exec.LookPath("sudo")
+	if err != nil {
+		status := fmt.Sprintf("%s", err)
+		return ierror.StatusError{Status: status, StatusCode: 127}
+	}
+
+	execPath, err := os.Executable()
+	if err != nil {
+		status := fmt.Sprintf("failed to get executable path: %s", err)
+		return ierror.StatusError{Status: status, StatusCode: 1}
+	}
+
+	args := []string{"sudo", execPath}
+	args = append(args, os.Args[1:]...)
+
+	err = syscall.Exec(sudoPath, args, os.Environ())
+	if err != nil {
+		status := fmt.Sprintf("failed to execute sudo: %s", err)
+		return ierror.StatusError{Status: status, StatusCode: 126}
+	}
+
+	return nil
+}
