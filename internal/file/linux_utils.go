@@ -69,10 +69,12 @@ func (r *DefaultBlockDeviceLister) List() (*BlockDevices, error) {
 	return &lsblk, nil
 }
 
-// SearchMountpoints searches for a file with the specified name in the
-// provided mountpoints iterating over them, ignoring certain paths.
-// For valid mountpoints, it calls GetFilePath to find the "user-data" file.
-// If the file is found, its path is returned. If an error occurs, it is returned.
+// SearchMountpoints searches for a file with the specified name across the
+// provided mountpoints, skipping ones rejected by isMountpointSearchable.
+// Walk errors on individual mountpoints (e.g. transient I/O issues, races
+// with unmount) are treated as "no match" so other mountpoints still get
+// scanned. If the file is found, the path is sent on c; context cancellation
+// is honored on send.
 func SearchMountpoints(ctx context.Context, fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
 	for _, mountpoint := range mountpoints {
 		if !isMountpointSearchable(mountpoint) {
@@ -80,23 +82,16 @@ func SearchMountpoints(ctx context.Context, fs afero.Fs, mountpoints []string, f
 		}
 
 		filePath, err := GetFilePath(fs, mountpoint, fileName)
-		if err != nil {
-			select {
-			case c <- SearchResult{Path: "", Err: fmt.Errorf("%w", err)}:
-			case <-ctx.Done():
-			}
-
-			return
+		if err != nil || filePath == "" {
+			continue
 		}
 
-		if filePath != "" {
-			select {
-			case c <- SearchResult{Path: filePath, Err: nil}:
-			case <-ctx.Done():
-			}
-
-			return
+		select {
+		case c <- SearchResult{Path: filePath, Err: nil}:
+		case <-ctx.Done():
 		}
+
+		return
 	}
 }
 
