@@ -9,7 +9,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// tokenElevationChecker is the interface for checking whether the current
+// tokenElevationChecker defines the interface for checking whether the current
 // process token carries an elevated privilege level.
 type tokenElevationChecker interface {
 	isElevated() (bool, error)
