@@ -33,15 +33,21 @@ func (windowsTokenChecker) isElevated() (bool, error) {
 // Administrator). Auto-elevation via User Account Control (UAC) would require
 // relaunching through ShellExecuteEx with the "runas" verb, which detaches
 // the new process from the current console.
-func (DefaultRootChecker) CheckRoot() error {
-	var token windows.Token
-	if err := windows.OpenProcessToken(windows.CurrentProcess(), windows.TOKEN_QUERY, &token); err != nil {
-		status := fmt.Sprintf("%s", err)
-		return ierror.StatusError{Status: status, StatusCode: 1}
-	}
-	defer token.Close()
+func (d DefaultRootChecker) CheckRoot() error {
+	return checkRootWithChecker(windowsTokenChecker{})
+}
 
-	if token.IsElevated() {
+// checkRootWithChecker uses the provided tokenElevationChecker to determine
+// whether the process has administrative privileges. It returns a StatusError
+// with code 1 if the token cannot be queried, or code 126 if the process is
+// not elevated.
+func checkRootWithChecker(checker tokenElevationChecker) error {
+	elevated, err := checker.isElevated()
+	if err != nil {
+		return ierror.StatusError{Status: fmt.Sprintf("%s", err), StatusCode: 1}
+	}
+
+	if elevated {
 		return nil
 	}
 
