@@ -131,16 +131,9 @@ func (s *SystemSearcher) FindUserData() (string, error) {
 			close(searchChan)
 		}()
 
-		for result := range searchChan {
-			if result.Err != nil {
-				cancel()
-				return "", fmt.Errorf("%w", result.Err)
-			}
-
-			if result.Path != "" {
-				cancel()
-				return result.Path, nil
-			}
+		path, err := drainSearchChan(cancel, searchChan)
+		if err != nil || path != "" {
+			return path, err
 		}
 
 	default:
@@ -150,4 +143,21 @@ func (s *SystemSearcher) FindUserData() (string, error) {
 
 	status := fmt.Sprintf("cannot access %s: could not find %s file, please try again", fileName, fileName)
 	return "", ierror.StatusError{Status: status, StatusCode: 2}
+}
+
+// drainSearchChan reads results from c until it is closed or a non-empty
+// path is found. The first hit cancels remaining goroutines via ctx.
+func drainSearchChan(cancel context.CancelFunc, c chan SearchResult) (string, error) {
+	for result := range c {
+		if result.Err != nil {
+			cancel()
+			return "", fmt.Errorf("%w", result.Err)
+		}
+		if result.Path != "" {
+			cancel()
+			return result.Path, nil
+		}
+	}
+
+	return "", nil
 }
