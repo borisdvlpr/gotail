@@ -77,6 +77,22 @@ type LinuxSearcher struct {
 	DeviceLister BlockDeviceLister
 }
 
+// NewSystemSearcher returns a SystemSearcher wired with a LinuxSearcher
+// backed by the real lsblk-based block device lister.
+func NewSystemSearcher(fsys afero.Fs) *SystemSearcher {
+	return &SystemSearcher{
+		Fsys: fsys,
+		Searcher: &LinuxSearcher{
+			DeviceLister: &DefaultBlockDeviceLister{},
+		},
+	}
+}
+
+func (l LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string, c chan SearchResult) {
+	//TODO implement me
+	panic("implement me")
+}
+
 // SearchMountpoints searches for a file with the specified name across the
 // provided mountpoints, skipping ones rejected by isMountpointSearchable.
 // Walk errors on individual mountpoints (e.g. transient I/O issues, races
