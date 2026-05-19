@@ -71,6 +71,12 @@ func (r *DefaultBlockDeviceLister) List() (*BlockDevices, error) {
 	return &lsblk, nil
 }
 
+// LinuxSearcher implements DriveSearcher for Linux by fanning out goroutines
+// across all block device mountpoints reported by lsblk.
+type LinuxSearcher struct {
+	DeviceLister BlockDeviceLister
+}
+
 // SearchMountpoints searches for a file with the specified name across the
 // provided mountpoints, skipping ones rejected by isMountpointSearchable.
 // Walk errors on individual mountpoints (e.g. transient I/O issues, races
