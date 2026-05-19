@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/spf13/afero"
 )
@@ -88,9 +89,44 @@ func NewSystemSearcher(fsys afero.Fs) *SystemSearcher {
 	}
 }
 
-func (l LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string, c chan SearchResult) {
-	//TODO implement me
-	panic("implement me")
+// Search lists block devices and spawns a goroutine per mountpoint group
+// (device-level and child-level). Loop devices are skipped. The first
+// successful hit is sent on c; ctx cancellation stops remaining workers.
+// Search closes c when all goroutines have finished.
+func (ls *LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string, c chan SearchResult) {
+	var wg sync.WaitGroup
+
+	devices, err := ls.DeviceLister.List()
+	if err != nil {
+		c <- SearchResult{Err: fmt.Errorf("%w", err)}
+		return
+	}
+
+	for _, device := range devices.Blockdevices {
+		if device.Type == "loop" {
+			continue
+		}
+
+		if device.Mountpoints != nil {
+			wg.Add(1)
+			go func(mounts []string) {
+				defer wg.Done()
+				SearchMountpoints(ctx, fsys, mounts, fileName, c)
+			}(device.Mountpoints)
+		}
+
+		for _, child := range device.Children {
+			if child.Mountpoints != nil {
+				wg.Add(1)
+				go func(mounts []string) {
+					defer wg.Done()
+					SearchMountpoints(ctx, fsys, mounts, fileName, c)
+				}(child.Mountpoints)
+			}
+		}
+	}
+
+	wg.Wait()
 }
 
 // SearchMountpoints searches for a file with the specified name across the
