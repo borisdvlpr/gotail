@@ -111,7 +111,7 @@ func (ls *LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName str
 			wg.Add(1)
 			go func(mounts []string) {
 				defer wg.Done()
-				SearchMountpoints(ctx, fsys, mounts, fileName, c)
+				searchMountpoints(ctx, fsys, mounts, fileName, c)
 			}(device.Mountpoints)
 		}
 
@@ -120,7 +120,7 @@ func (ls *LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName str
 				wg.Add(1)
 				go func(mounts []string) {
 					defer wg.Done()
-					SearchMountpoints(ctx, fsys, mounts, fileName, c)
+					searchMountpoints(ctx, fsys, mounts, fileName, c)
 				}(child.Mountpoints)
 			}
 		}
@@ -129,13 +129,13 @@ func (ls *LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName str
 	wg.Wait()
 }
 
-// SearchMountpoints searches for a file with the specified name across the
+// searchMountpoints searches for a file with the specified name across the
 // provided mountpoints, skipping ones rejected by isMountpointSearchable.
 // Walk errors on individual mountpoints (e.g. transient I/O issues, races
 // with unmount) are treated as "no match" so other mountpoints still get
 // scanned. If the file is found, the path is sent on c; context cancellation
 // is honored on send.
-func SearchMountpoints(ctx context.Context, fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
+func searchMountpoints(ctx context.Context, fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
 	for _, mountpoint := range mountpoints {
 		if !isMountpointSearchable(mountpoint) {
 			continue
