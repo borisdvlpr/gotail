@@ -26,12 +26,9 @@ func Execute() {
 	fs := afero.NewOsFs()
 
 	setupDeps := SetupCommand{
-		Fsys:        fs,
-		RootChecker: system.DefaultRootChecker{},
-		SystemSearcher: &file.SystemSearcher{
-			Fsys:         fs,
-			DeviceLister: &file.DefaultBlockDeviceLister{},
-		},
+		Fsys:           fs,
+		RootChecker:    system.DefaultRootChecker{},
+		SystemSearcher: file.NewSystemSearcher(fs),
 	}
 
 	setupCmd := NewSetupCmd(setupDeps)
