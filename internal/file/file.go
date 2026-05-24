@@ -18,10 +18,10 @@ import (
 
 // DriveSearcher is the platform-specific strategy for locating a file across
 // the drives or mountpoints visible on the current OS. Each platform provides
-// its own implementation via NewSystemSearcher; Darwin leaves this nil and
-// falls back to the inline /Volumes walk.
+// its own implementation via NewSystemSearcher; an unsupported operating system
+// leaves this nil.
 type DriveSearcher interface {
-	Search(ctx context.Context, fsys afero.Fs, fileName string, c chan SearchResult)
+	Search(ctx context.Context, fsys afero.Fs, fileName string) (string, error)
 }
 
 // SystemSearcher holds the external interfaces used by the file module. It
