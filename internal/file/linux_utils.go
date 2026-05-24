@@ -93,13 +93,16 @@ func NewSystemSearcher(fsys afero.Fs) *SystemSearcher {
 // (device-level and child-level). Loop devices are skipped. The first
 // successful hit is sent on c; ctx cancellation stops remaining workers.
 // Search closes c when all goroutines have finished.
-func (ls *LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string, c chan SearchResult) {
+func (ls *LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string) (string, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	var wg sync.WaitGroup
+	searchChan := make(chan SearchResult, 1)
 
 	devices, err := ls.DeviceLister.List()
 	if err != nil {
-		c <- SearchResult{Err: fmt.Errorf("%w", err)}
-		return
+		return "", fmt.Errorf("%w", err)
 	}
 
 	for _, device := range devices.Blockdevices {
@@ -111,7 +114,7 @@ func (ls *LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName str
 			wg.Add(1)
 			go func(mounts []string) {
 				defer wg.Done()
-				searchMountpoints(ctx, fsys, mounts, fileName, c)
+				searchMountpoints(ctx, fsys, mounts, fileName, searchChan)
 			}(device.Mountpoints)
 		}
 
@@ -120,13 +123,18 @@ func (ls *LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName str
 				wg.Add(1)
 				go func(mounts []string) {
 					defer wg.Done()
-					searchMountpoints(ctx, fsys, mounts, fileName, c)
+					searchMountpoints(ctx, fsys, mounts, fileName, searchChan)
 				}(child.Mountpoints)
 			}
 		}
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(searchChan)
+	}()
+
+	return drainSearchChan(cancel, searchChan)
 }
 
 // searchMountpoints searches for a file with the specified name across the
