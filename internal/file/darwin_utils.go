@@ -2,14 +2,28 @@
 
 package file
 
-import "github.com/spf13/afero"
+import (
+	"context"
 
-// NewSystemSearcher returns a SystemSearcher for macOS. No DriveSearcher is
-// needed here — FindUserData handles darwin by walking /Volumes directly, so
-// Searcher is left nil as the sentinel for that path.
+	"github.com/spf13/afero"
+)
+
+// DarwinSearcher implements DriveSearcher for macOS by walking /Volumes,
+// where the OS automatically mounts removable media such as SD cards.
+type DarwinSearcher struct{}
+
+// NewSystemSearcher returns a SystemSearcher for macOS, wired with a
+// DarwinSearcher that walks /Volumes to locate the target file.
 func NewSystemSearcher(fsys afero.Fs) *SystemSearcher {
 	return &SystemSearcher{
 		Fsys:     fsys,
-		Searcher: nil,
+		Searcher: DarwinSearcher{},
 	}
+}
+
+// Search locates fileName by walking /Volumes, where macOS mounts removable
+// drives. It returns the path of the first match, or an empty string if not
+// found. No concurrency is needed as the search is a single synchronous walk.
+func (ds *DarwinSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string) (string, error) {
+	return GetFilePath(fsys, "/Volumes", fileName)
 }
