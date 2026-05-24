@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	ierror "github.com/borisdvlpr/gotail/internal/error"
@@ -82,30 +83,20 @@ func (s *SystemSearcher) FindUserData() (string, error) {
 	const fileName = "user-data"
 
 	if s.Searcher == nil {
-		filePath, err := GetFilePath(s.Fsys, "/Volumes", fileName)
-		if err != nil {
-			return "", fmt.Errorf("%w", err)
-		}
+		status := fmt.Sprintf("unsupported operating system: %s", runtime.GOOS)
+		return "", ierror.StatusError{Status: status, StatusCode: 71}
+	}
 
-		if filePath != "" {
-			return filePath, nil
-		}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	} else {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+	path, err := s.Searcher.Search(ctx, s.Fsys, fileName)
+	if err != nil {
+		return "", err
+	}
 
-		searchChan := make(chan SearchResult, 1)
-
-		go func() {
-			s.Searcher.Search(ctx, s.Fsys, fileName, searchChan)
-			close(searchChan)
-		}()
-
-		path, err := drainSearchChan(cancel, searchChan)
-		if err != nil || path != "" {
-			return path, err
-		}
+	if path != "" {
+		return path, nil
 	}
 
 	status := fmt.Sprintf("cannot access %s: could not find %s file, please try again", fileName, fileName)
