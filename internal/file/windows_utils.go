@@ -3,11 +3,14 @@
 package file
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"unicode/utf16"
 
+	"github.com/spf13/afero"
 	"golang.org/x/sys/windows"
 )
 
@@ -46,6 +49,38 @@ type DefaultWinDriveLister struct{}
 // goroutines across all logical drives reported by the WinDriveLister.
 type WindowsSearcher struct {
 	DriveLister WinDriveLister
+}
+
+// Search lists logical drives and spawns a goroutine per drive. Drives
+// rejected by isDriveSearchable are skipped. The first successful hit is
+// sent on c; ctx cancellation stops remaining workers. Search closes c
+// when all goroutines have finished.
+func (ws *WindowsSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string) (string, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	searchChan := make(chan SearchResult, 1)
+
+	drives, err := ws.DriveLister.List()
+	if err != nil {
+		return "", fmt.Errorf("%w", err)
+	}
+
+	for _, drive := range drives.Drives {
+		wg.Add(1)
+		go func(d WinDrive) {
+			defer wg.Done()
+			SearchDrive(ctx, fsys, d, fileName, searchChan)
+		}(drive)
+	}
+
+	go func() {
+		wg.Wait()
+		close(searchChan)
+	}()
+
+	return drainSearchChan(cancel, searchChan)
 }
 
 // List enumerates all logical drives on the Windows system using the
@@ -115,6 +150,27 @@ func getFileSystemName(root *uint16) string {
 	}
 
 	return string(utf16.Decode(fsBuf[:end]))
+}
+
+// SearchDrive searches drive for fileName when the drive is searchable per
+// isDriveSearchable. Walk errors (e.g. "device not ready" from an empty card
+// reader) are treated as "no match" rather than aborting the whole search,
+// so other drives still get scanned. If the file is found, the path is sent
+// on c; context cancellation is honored on send.
+func SearchDrive(ctx context.Context, fs afero.Fs, drive WinDrive, fileName string, c chan SearchResult) {
+	if !isDriveSearchable(drive) {
+		return
+	}
+
+	filePath, err := GetFilePath(fs, drive.Root, fileName)
+	if err != nil || filePath == "" {
+		return
+	}
+
+	select {
+	case c <- SearchResult{Path: filePath, Err: nil}:
+	case <-ctx.Done():
+	}
 }
 
 // isDriveSearchable returns true if drive is a candidate for hosting a
