@@ -51,6 +51,17 @@ type WindowsSearcher struct {
 	DriveLister WinDriveLister
 }
 
+// NewSystemSearcher returns a SystemSearcher wired with a WindowsSearcher
+// backed by the real Win32-based logical drive lister.
+func NewSystemSearcher(fsys afero.Fs) *SystemSearcher {
+	return &SystemSearcher{
+		Fsys: fsys,
+		Searcher: &WindowsSearcher{
+			DriveLister: &DefaultWinDriveLister{},
+		},
+	}
+}
+
 // Search lists logical drives and spawns a goroutine per drive. Drives
 // rejected by isDriveSearchable are skipped. The first successful hit is
 // sent on c; ctx cancellation stops remaining workers. Search closes c
