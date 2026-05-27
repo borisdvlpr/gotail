@@ -17,7 +17,7 @@ type DarwinSearcher struct{}
 func NewSystemSearcher(fsys afero.Fs) *SystemSearcher {
 	return &SystemSearcher{
 		Fsys:     fsys,
-		Searcher: DarwinSearcher{},
+		Searcher: &DarwinSearcher{},
 	}
 }
 
