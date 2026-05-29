@@ -28,7 +28,7 @@ func TestIsDriveSearchable(t *testing.T) {
 		{name: "forward_slash", drive: WinDrive{Root: `D:/`, Type: driveTypeRemovable, FileSystem: "FAT32"}, expected: false},
 	}
 
-	for _, tc := range tests {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := isDriveSearchable(tc.drive); got != tc.expected {
 				t.Errorf("isDriveSearchable(%+v) = %v, want %v", tc.drive, got, tc.expected)
