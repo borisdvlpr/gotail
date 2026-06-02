@@ -52,6 +52,7 @@ nfpms:
     formats:
       - apk
       - deb
+      - rpm
 
 changelog:
   sort: asc
