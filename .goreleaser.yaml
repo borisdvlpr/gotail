@@ -53,6 +53,7 @@ nfpms:
       - apk
       - deb
       - rpm
+      - archlinux
 
 changelog:
   sort: asc
