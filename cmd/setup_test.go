@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -10,7 +11,6 @@ import (
 	"github.com/spf13/afero"
 )
 
-// MockRootChecker simulates checking for sudo/root permissions.
 type MockRootChecker struct {
 	ShouldError bool
 }
@@ -22,16 +22,10 @@ func (m MockRootChecker) CheckRoot() error {
 	return nil
 }
 
-// MockDeviceLister simulates finding hardware devices (SD cards).
-type MockDeviceLister struct {
-	Devices *file.BlockDevices
-}
+type MockSearcher struct{}
 
-func (m *MockDeviceLister) List() (*file.BlockDevices, error) {
-	if m.Devices == nil {
-		return &file.BlockDevices{}, nil
-	}
-	return m.Devices, nil
+func (m *MockSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string) (string, error) {
+	return file.GetFilePath(fsys, "/", fileName)
 }
 
 func TestSetup_Success(t *testing.T) {
@@ -42,44 +36,14 @@ func TestSetup_Success(t *testing.T) {
 
 	userDataPath := "/mnt/sdcard/user-data"
 	_ = mockFS.MkdirAll("/mnt/sdcard", 0755)
-	_ = afero.WriteFile(mockFS, userDataPath, []byte("#cloud-config\n"), 0644)
-
-	mockRoot := MockRootChecker{ShouldError: false}
-	mockLister := &MockDeviceLister{
-		Devices: &file.BlockDevices{
-			Blockdevices: []struct {
-				Name        string   `json:"name"`
-				MajMin      string   `json:"maj:min"`
-				Rm          bool     `json:"rm"`
-				Size        string   `json:"size"`
-				Ro          bool     `json:"ro"`
-				Type        string   `json:"type"`
-				Mountpoints []string `json:"mountpoints"`
-				Children    []struct {
-					Name        string   `json:"name"`
-					MajMin      string   `json:"maj:min"`
-					Rm          bool     `json:"rm"`
-					Size        string   `json:"size"`
-					Ro          bool     `json:"ro"`
-					Type        string   `json:"type"`
-					Mountpoints []string `json:"mountpoints"`
-				} `json:"children,omitempty"`
-			}{
-				{
-					Name:        "mmcblk0",
-					Type:        "disk",
-					Mountpoints: []string{"/mnt/sdcard"},
-				},
-			},
-		},
-	}
+	_ = afero.WriteFile(mockFS, userDataPath, []byte("# cloud-config\n"), 0644)
 
 	setupDeps := SetupCommand{
 		Fsys:        mockFS,
-		RootChecker: mockRoot,
+		RootChecker: MockRootChecker{ShouldError: false},
 		SystemSearcher: &file.SystemSearcher{
-			Fsys:         mockFS,
-			DeviceLister: mockLister,
+			Fsys:     mockFS,
+			Searcher: &MockSearcher{},
 		},
 	}
 
@@ -111,8 +75,8 @@ func TestSetup_Fail_RootCheck(t *testing.T) {
 		Fsys:        mockFS,
 		RootChecker: MockRootChecker{ShouldError: true},
 		SystemSearcher: &file.SystemSearcher{
-			Fsys:         mockFS,
-			DeviceLister: &MockDeviceLister{},
+			Fsys:     mockFS,
+			Searcher: &MockSearcher{},
 		},
 	}
 
@@ -141,8 +105,8 @@ func TestSetup_Fail_FileNotFound(t *testing.T) {
 		Fsys:        mockFS,
 		RootChecker: MockRootChecker{ShouldError: false},
 		SystemSearcher: &file.SystemSearcher{
-			Fsys:         mockFS,
-			DeviceLister: &MockDeviceLister{Devices: nil},
+			Fsys:     mockFS,
+			Searcher: &MockSearcher{}, // walks empty FS, will find nothing
 		},
 	}
 

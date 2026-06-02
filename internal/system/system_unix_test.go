@@ -1,8 +1,9 @@
+//go:build !windows
+
 package system
 
 import (
 	"errors"
-	"os"
 	"testing"
 
 	ierror "github.com/borisdvlpr/gotail/internal/error"
@@ -17,10 +18,6 @@ func (m MockRootChecker) CheckRoot() error {
 	if m.shouldError {
 		return ierror.StatusError{Status: m.errorMsg, StatusCode: 1}
 	}
-
-	execPath := "fake/path/to/executable"
-	args := []string{"sudo", execPath}
-	args = append(args, os.Args[1:]...)
 
 	return nil
 }

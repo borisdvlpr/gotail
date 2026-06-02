@@ -13,7 +13,7 @@ import (
 // the correct format, an error is returned indicating the invalid
 // subnet and a status code of 1.
 func ValidateSubnets(subnets string) error {
-	for _, subnet := range strings.Split(subnets, ",") {
+	for subnet := range strings.SplitSeq(subnets, ",") {
 		if _, _, err := net.ParseCIDR(subnet); err != nil {
 			return ierror.StatusError{Status: fmt.Sprintf("%s: invalid subnet format", subnet), StatusCode: 1}
 		}

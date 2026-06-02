@@ -14,8 +14,9 @@ builds:
     env:
       - CGO_ENABLED=0
     goos:
-      - linux
       - darwin
+      - linux
+      - windows
     goarch:
       - amd64
       - arm
@@ -51,6 +52,8 @@ nfpms:
     formats:
       - apk
       - deb
+      - rpm
+      - archlinux
 
 changelog:
   sort: asc

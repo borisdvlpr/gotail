@@ -1,3 +1,5 @@
+//go:build linux
+
 package file
 
 import (
@@ -8,6 +10,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/spf13/afero"
 )
@@ -69,34 +72,94 @@ func (r *DefaultBlockDeviceLister) List() (*BlockDevices, error) {
 	return &lsblk, nil
 }
 
-// SearchMountpoints searches for a file with the specified name in the
-// provided mountpoints iterating over them, ignoring certain paths.
-// For valid mountpoints, it calls GetFilePath to find the "user-data" file.
-// If the file is found, its path is returned. If an error occurs, it is returned.
-func SearchMountpoints(ctx context.Context, fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
+// LinuxSearcher implements DriveSearcher for Linux by fanning out goroutines
+// across all block device mountpoints reported by lsblk.
+type LinuxSearcher struct {
+	DeviceLister BlockDeviceLister
+}
+
+// NewSystemSearcher returns a SystemSearcher wired with a LinuxSearcher
+// backed by the real lsblk-based block device lister.
+func NewSystemSearcher(fsys afero.Fs) *SystemSearcher {
+	return &SystemSearcher{
+		Fsys: fsys,
+		Searcher: &LinuxSearcher{
+			DeviceLister: &DefaultBlockDeviceLister{},
+		},
+	}
+}
+
+// Search lists block devices and spawns a goroutine per mountpoint group
+// (device-level and child-level). Loop devices are skipped. The first
+// successful hit is sent on c; ctx cancellation stops remaining workers.
+// Search closes c when all goroutines have finished.
+func (ls *LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string) (string, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	searchChan := make(chan SearchResult, 1)
+
+	devices, err := ls.DeviceLister.List()
+	if err != nil {
+		return "", fmt.Errorf("%w", err)
+	}
+
+	for _, device := range devices.Blockdevices {
+		if device.Type == "loop" {
+			continue
+		}
+
+		if device.Mountpoints != nil {
+			wg.Add(1)
+			go func(mounts []string) {
+				defer wg.Done()
+				searchMountpoints(ctx, fsys, mounts, fileName, searchChan)
+			}(device.Mountpoints)
+		}
+
+		for _, child := range device.Children {
+			if child.Mountpoints != nil {
+				wg.Add(1)
+				go func(mounts []string) {
+					defer wg.Done()
+					searchMountpoints(ctx, fsys, mounts, fileName, searchChan)
+				}(child.Mountpoints)
+			}
+		}
+	}
+
+	go func() {
+		wg.Wait()
+		close(searchChan)
+	}()
+
+	return drainSearchChan(cancel, searchChan)
+}
+
+// searchMountpoints searches for a file with the specified name across the
+// provided mountpoints, skipping ones rejected by isMountpointSearchable.
+// Walk errors on individual mountpoints (e.g. transient I/O issues, races
+// with unmount) are treated as "no match" so other mountpoints still get
+// scanned. If the file is found, the path is sent on c; context cancellation
+// is honored on send.
+func searchMountpoints(ctx context.Context, fs afero.Fs, mountpoints []string, fileName string, c chan SearchResult) {
 	for _, mountpoint := range mountpoints {
 		if !isMountpointSearchable(mountpoint) {
 			continue
 		}
 
 		filePath, err := GetFilePath(fs, mountpoint, fileName)
-		if err != nil {
-			select {
-			case c <- SearchResult{Path: "", Err: fmt.Errorf("%w", err)}:
-			case <-ctx.Done():
-			}
-
-			return
+		if err != nil || filePath == "" {
+			continue
 		}
 
-		if filePath != "" {
-			select {
-			case c <- SearchResult{Path: filePath, Err: nil}:
-			case <-ctx.Done():
-			}
-
-			return
+		select {
+		case c <- SearchResult{Path: filePath, Err: nil}:
+		case <-ctx.Done():
 		}
+
+		return
 	}
 }
 

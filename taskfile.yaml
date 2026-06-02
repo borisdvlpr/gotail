@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 silent: true
 
@@ -33,35 +33,47 @@ tasks:
     cmds:
       - task: build-{{OS}}-{{ARCH}}
 
+  build-darwin-arm64:
+    desc: Build binary for macOS ARM64
+    cmds:
+      - echo "Building macOS arm64 binary..."
+      - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-X github.com/borisdvlpr/gotail/main.version={{.VERSION}}" -o {{.BINARY_NAME}}-macos-arm64 {{.MAIN_PATH}}
+      - echo "Build completed."
+
   build-linux-amd64:
     desc: Build binary for Linux AMD64
     cmds:
       - echo "Building linux amd64 binary..."
-      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}" -o {{.BINARY_NAME}}-linux-amd64 {{.MAIN_PATH}}
+      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/borisdvlpr/gotail/main.version={{.VERSION}}" -o {{.BINARY_NAME}}-linux-amd64 {{.MAIN_PATH}}
       - echo "Build completed."
 
   build-linux-arm64:
     desc: Build binary for Linux ARM64
     cmds:
       - echo "Building linux arm64 binary..."
-      - CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}" -o {{.BINARY_NAME}}-linux-arm64 {{.MAIN_PATH}}
+      - CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X github.com/borisdvlpr/gotail/main.version={{.VERSION}}" -o {{.BINARY_NAME}}-linux-arm64 {{.MAIN_PATH}}
       - echo "Build completed."
 
-  build-darwin-arm64:
-    desc: Build binary for macOS ARM64
+  build-windows-amd64:
+    desc: Build binary for Windows AMD64
     cmds:
-      - echo "Building macOS arm64 binary..."
-      - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}" -o {{.BINARY_NAME}}-macos-arm64 {{.MAIN_PATH}}
+      - echo "Building windows amd64 binary..."
+      - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-X github.com/borisdvlpr/gotail/main.version={{.VERSION}}" -o {{.BINARY_NAME}}-windows-amd64.exe {{.MAIN_PATH}}
       - echo "Build completed."
 
   install:
     desc: Install binary to local path
     deps: [build]
     cmds:
-      - echo "Installing gotail on $HOME/.local/bin..."
-      - mkdir -p $HOME/.local/bin
       - |
-        if [ "{{OS}}" = "linux" ]; then
+        if [ "{{OS}}" = "windows" ]; then
+          echo "Installing gotail on $USERPROFILE/AppData/Local/Microsoft/WindowsApps..."
+          mkdir -p "$USERPROFILE/AppData/Local/Microsoft/WindowsApps"
+          cp {{.BINARY_NAME}}-windows-amd64.exe "$USERPROFILE/AppData/Local/Microsoft/WindowsApps/gotail.exe"
+
+        elif [ "{{OS}}" = "linux" ]; then
+          echo "Installing gotail on $HOME/.local/bin..."
+          mkdir -p $HOME/.local/bin
           if [ "{{ARCH}}" = "amd64" ]; then
             cp {{.BINARY_NAME}}-linux-amd64 $HOME/.local/bin/gotail
           elif [ "{{ARCH}}" = "arm64" ]; then
@@ -71,6 +83,8 @@ tasks:
             exit 1
           fi
         elif [ "{{OS}}" = "darwin" ]; then
+          echo "Installing gotail on $HOME/.local/bin..."
+          mkdir -p $HOME/.local/bin
           if [ "{{ARCH}}" = "arm64" ]; then
             cp {{.BINARY_NAME}}-macos-arm64 $HOME/.local/bin/gotail
           else
@@ -88,7 +102,12 @@ tasks:
     cmds:
       - echo "Cleaning local installation..."
       - rm -rf bin/
-      - rm -f $HOME/.local/bin/gotail
+      - |
+        if [ "{{OS}}" = "windows" ]; then
+          rm -f "$USERPROFILE/AppData/Local/Microsoft/WindowsApps/gotail.exe"
+        else
+          rm -f $HOME/.local/bin/gotail
+        fi
 
   all:
     desc: Build and install the application

@@ -18,7 +18,7 @@ func TestGetFilePath(t *testing.T) {
 		{
 			id:           "case_01",
 			file:         "user-data",
-			expectedPath: "file-test-dir/user-data",
+			expectedPath: filepath.Join("file-test-dir", "user-data"),
 		},
 		{
 			id:           "case_02",
