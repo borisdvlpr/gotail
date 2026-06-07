@@ -11,13 +11,19 @@ tasks:
   check-go:
     desc: Check if Go is installed
     cmds:
+      - task: check-go-{{OS}}
+
+  check-go-unix:
+    desc: Check if Go is installed (Linux/macOS)
+    aliases: [check-go-linux, check-go-darwin]
+    cmds:
       - echo "Checking Go..."
       - |
         if ! command -v go >/dev/null 2>&1; then
           echo "Error: Go is not installed. Please install Go before proceeding."
           exit 1
         else
-          echo "Go version $(go version | awk '{print substr($3, 3)}') is installed at $(which go)."
+          echo "Go version $(go version | awk '{print substr($3, 3)}') is installed at $(which go) ({{OS}})."
         fi
 
   check-go-windows:
