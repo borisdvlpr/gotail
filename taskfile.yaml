@@ -20,6 +20,14 @@ tasks:
           echo "Go version $(go version | awk '{print substr($3, 3)}') is installed at $(which go)."
         fi
 
+  check-go-windows:
+    desc: Check if Go is installed (Windows)
+    cmds:
+      - echo "Checking Go..."
+      - |
+        where go > NUL 2>&1 || (echo Error: Go is not installed. Please install Go before proceeding. && exit 1)
+        for /f "tokens=3" %v in ('go version') do @echo Go version %v is installed.
+
   test:
     desc: Run all tests
     cmds:
