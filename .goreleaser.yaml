@@ -55,6 +55,20 @@ nfpms:
       - rpm
       - archlinux
 
+brews:
+  - repository:
+      owner: borisdvlpr
+      name: homebrew-gotail
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/borisdvlpr/gotail
+    description: "Bootstrap Tailscale into your Raspberry Pi from the very first boot."
+    license: BSD-3-Clause
+    test: |
+      system "#{bin}/gotail --version"
+    install: |
+      bin.install "gotail"
+
 changelog:
   sort: asc
   filters:
