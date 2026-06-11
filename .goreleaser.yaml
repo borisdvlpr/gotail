@@ -22,7 +22,7 @@ builds:
       - arm
       - arm64
     ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+      - -s -w -X github.com/borisdvlpr/gotail/cmd.version={{.Version}}
 
 archives:
   - formats: [tar.gz]
@@ -54,6 +54,46 @@ nfpms:
       - deb
       - rpm
       - archlinux
+
+brews:
+  - repository:
+      owner: borisdvlpr
+      name: homebrew-gotail
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/borisdvlpr/gotail
+    description: "Bootstrap Tailscale into your Raspberry Pi from the very first boot."
+    license: BSD-3-Clause
+    test: |
+      system "#{bin}/gotail --version"
+    install: |
+      bin.install "gotail"
+
+winget:
+  - name: gotail
+    package_identifier: borisdvlpr.gotail
+    publisher: borisdvlpr
+    license: BSD-3-Clause
+    copyright: "Eduardo Miranda"
+    homepage: https://github.com/borisdvlpr/gotail
+    short_description: "Bootstrap Tailscale into your Raspberry Pi from the very first boot."
+    description: |-
+      Bootstrap Tailscale into your Raspberry Pi and join it to your
+      tailnet automatically from the very first boot.
+    publisher_url: https://github.com/borisdvlpr
+    publisher_support_url: https://github.com/borisdvlpr/gotail/issues
+    repository:
+      owner: borisdvlpr
+      name: winget-pkgs
+      branch: "gotail-{{.Version}}"
+      token: "{{ .Env.WINGET_GITHUB_TOKEN }}"
+      pull_request:
+        enabled: true
+        draft: true
+        base:
+          owner: microsoft
+          name: winget-pkgs
+          branch: master
 
 changelog:
   sort: asc

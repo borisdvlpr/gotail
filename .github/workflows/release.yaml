@@ -41,3 +41,21 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
+
+      - name: Publish Linux packages to Cloudsmith
+        env:
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+        run: |
+          shopt -s nullglob
+          pip install --upgrade cloudsmith-cli
+          for pkg in dist/*.deb; do
+            cloudsmith push deb borisdvlpr/gotail/any-distro/any-version "$pkg"
+          done
+          for pkg in dist/*.rpm; do
+            cloudsmith push rpm borisdvlpr/gotail/any-distro/any-version "$pkg"
+          done
+          for pkg in dist/*.apk; do
+            cloudsmith push alpine borisdvlpr/gotail/alpine/any-version "$pkg"
+          done
