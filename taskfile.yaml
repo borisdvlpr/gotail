@@ -5,125 +5,63 @@ silent: true
 vars:
   MAIN_PATH: .
   BINARY_NAME: bin/gotail
-  VERSION: '{{.VERSION | default "$(cat version.txt)"}}-snapshot'
+  EXE: '{{if eq OS "windows"}}.exe{{end}}'
+  VERSION:
+    sh: cat version.txt
 
 tasks:
   check-go:
-    desc: Check if Go is installed
+    desc: Verify that Go is installed
     cmds:
-      - task: check-go-{{OS}}
-
-  check-go-unix:
-    desc: Check if Go is installed (Linux/macOS)
-    aliases: [check-go-linux, check-go-darwin]
-    cmds:
-      - echo "Checking Go..."
       - |
         if ! command -v go >/dev/null 2>&1; then
           echo "Error: Go is not installed. Please install Go before proceeding."
           exit 1
-        else
-          echo "Go version $(go version | awk '{print substr($3, 3)}') is installed at $(which go) ({{OS}})."
         fi
-
-  check-go-windows:
-    desc: Check if Go is installed (Windows)
-    cmds:
-      - echo "Checking Go..."
-      - |
-        where go > NUL 2>&1 || (echo Error: Go is not installed. Please install Go before proceeding. && exit 1)
-        for /f "tokens=3" %v in ('go version') do @echo Go version %v is installed.
+        echo "Using $(go version)."
 
   test:
-    desc: Run all tests
+    desc: Run unit tests
     cmds:
       - echo "Running unit tests..."
-      - go test ./... -v 2>&1 || (echo "Tests failed." && exit 1)
+      - go test ./... -v
       - echo "Tests passed."
 
   build:
-    desc: Build binary for current platform
+    desc: Build the binary for the current platform
     deps: [check-go, test]
+    env:
+      CGO_ENABLED: "0"
     cmds:
-      - task: build-{{OS}}-{{ARCH}}
-
-  build-darwin-arm64:
-    desc: Build binary for macOS ARM64
-    cmds:
-      - echo "Building macOS arm64 binary..."
-      - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}" -o {{.BINARY_NAME}}-macos-arm64 {{.MAIN_PATH}}
-      - echo "Build completed."
-
-  build-linux-amd64:
-    desc: Build binary for Linux AMD64
-    cmds:
-      - echo "Building linux amd64 binary..."
-      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}" -o {{.BINARY_NAME}}-linux-amd64 {{.MAIN_PATH}}
-      - echo "Build completed."
-
-  build-linux-arm64:
-    desc: Build binary for Linux ARM64
-    cmds:
-      - echo "Building linux arm64 binary..."
-      - CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}" -o {{.BINARY_NAME}}-linux-arm64 {{.MAIN_PATH}}
-      - echo "Build completed."
-
-  build-windows-amd64:
-    desc: Build binary for Windows AMD64
-    cmds:
-      - echo "Building windows amd64 binary..."
-      - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}" -o {{.BINARY_NAME}}-windows-amd64.exe {{.MAIN_PATH}}
+      - echo "Building gotail for {{OS}}/{{ARCH}}..."
+      - go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}-snapshot" -o {{.BINARY_NAME}}{{.EXE}} {{.MAIN_PATH}}
       - echo "Build completed."
 
   install:
-    desc: Install binary to local path
+    desc: Install the binary into your user bin directory
     deps: [build]
     cmds:
-      - |
-        if [ "{{OS}}" = "windows" ]; then
-          echo "Installing gotail on $USERPROFILE/AppData/Local/Microsoft/WindowsApps..."
+      - cmd: |
           mkdir -p "$USERPROFILE/AppData/Local/Microsoft/WindowsApps"
-          cp {{.BINARY_NAME}}-windows-amd64.exe "$USERPROFILE/AppData/Local/Microsoft/WindowsApps/gotail.exe"
-
-        elif [ "{{OS}}" = "linux" ]; then
-          echo "Installing gotail on $HOME/.local/bin..."
-          mkdir -p $HOME/.local/bin
-          if [ "{{ARCH}}" = "amd64" ]; then
-            cp {{.BINARY_NAME}}-linux-amd64 $HOME/.local/bin/gotail
-          elif [ "{{ARCH}}" = "arm64" ]; then
-            cp {{.BINARY_NAME}}-linux-arm64 $HOME/.local/bin/gotail
-          else
-            echo "Unsupported Linux architecture: {{ARCH}}"
-            exit 1
-          fi
-        elif [ "{{OS}}" = "darwin" ]; then
-          echo "Installing gotail on $HOME/.local/bin..."
-          mkdir -p $HOME/.local/bin
-          if [ "{{ARCH}}" = "arm64" ]; then
-            cp {{.BINARY_NAME}}-macos-arm64 $HOME/.local/bin/gotail
-          else
-            echo "Unsupported macOS architecture: {{ARCH}}"
-            exit 1
-          fi
-        else
-          echo "Unsupported operating system: {{OS}}"
-          exit 1
-        fi
+          cp {{.BINARY_NAME}}.exe "$USERPROFILE/AppData/Local/Microsoft/WindowsApps/gotail.exe"
+        platforms: [windows]
+      - cmd: |
+          mkdir -p "$HOME/.local/bin"
+          cp {{.BINARY_NAME}} "$HOME/.local/bin/gotail"
+        platforms: [linux, darwin]
       - echo "gotail installed successfully."
 
   clean:
-    desc: Clean up build artifacts and local installation
+    desc: Remove build artifacts and the installed binary
     cmds:
-      - echo "Cleaning local installation..."
       - rm -rf bin/
-      - |
-        if [ "{{OS}}" = "windows" ]; then
-          rm -f "$USERPROFILE/AppData/Local/Microsoft/WindowsApps/gotail.exe"
-        else
-          rm -f $HOME/.local/bin/gotail
-        fi
+      - cmd: rm -f "$USERPROFILE/AppData/Local/Microsoft/WindowsApps/gotail.exe"
+        platforms: [windows]
+      - cmd: rm -f "$HOME/.local/bin/gotail"
+        platforms: [linux, darwin]
+      - echo "Cleaned up."
 
   all:
-    desc: Build and install the application
+    desc: Build, test, and install gotail
     cmds:
       - task: install
