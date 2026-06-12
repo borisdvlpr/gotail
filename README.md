@@ -1,21 +1,65 @@
 # gotail
 
+[![Release](https://img.shields.io/github/v/release/borisdvlpr/gotail)](https://github.com/borisdvlpr/gotail/releases)
+[![CI](https://github.com/borisdvlpr/gotail/actions/workflows/pull-request.yaml/badge.svg)](https://github.com/borisdvlpr/gotail/actions/workflows/pull-request.yaml)
+[![License](https://img.shields.io/github/license/borisdvlpr/gotail)](LICENSE)
+[![OSS hosting by Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith)](https://cloudsmith.com)
+
 Bootstrap Tailscale into your Raspberry Pi and join it to your tailnet automatically from the very first boot. This project is a Go implementation of the original Tailscale grafter for Raspberry Pi, [tailgraft](https://github.com/tailscale-dev/tailgraft/blob/main/README.md).
 
 gotail is intended to be used after you've flashed Ubuntu onto an SD card, but before you've booted it in a Raspberry Pi for the first time. It supports Linux, macOS, and Windows.
 
-## Development Requirements
+## Table of Contents
 
-For development and source builds, the following tools are needed:
-
-- **Go**: Version 1.26 or later. Download from [golang.org](https://go.dev/dl/).
-- **Task**: A task runner / build tool. Installation instructions and documentation can be found at [taskfile.dev](https://taskfile.dev/).
+- [Installation](#installation)
+  - [Package Managers](#package-managers-recommended)
+  - [Pre-built Binary](#pre-built-binary)
+  - [Build from Source](#build-from-source)
+- [Usage](#usage)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Installation
 
-Choose one of these methods to install `gotail`:
+### Package Managers (recommended)
 
-### Option 1: Pre-built Binary (Recommended)
+#### Homebrew (macOS / Linux)
+
+```sh
+brew install borisdvlpr/gotail/gotail
+```
+
+#### Debian / Ubuntu (APT)
+
+```sh
+curl -1sLf 'https://dl.cloudsmith.io/public/borisdvlpr/gotail/setup.deb.sh' | sudo -E bash
+sudo apt install gotail
+```
+
+#### Fedora / RHEL (DNF)
+
+```sh
+curl -1sLf 'https://dl.cloudsmith.io/public/borisdvlpr/gotail/setup.rpm.sh' | sudo -E bash
+sudo dnf install gotail
+```
+
+#### Alpine (APK)
+
+```sh
+curl -1sLf 'https://dl.cloudsmith.io/public/borisdvlpr/gotail/setup.alpine.sh' | sudo -E bash
+sudo apk add gotail
+```
+
+#### Windows (winget)
+
+```powershell
+winget install borisdvlpr.gotail
+```
+
+> Linux package hosting is graciously provided by [Cloudsmith](https://cloudsmith.com), the only fully hosted, cloud-native, universal package management solution.
+
+### Pre-built Binary
 
 Download the latest release from the [GitHub releases page](https://github.com/borisdvlpr/gotail/releases) and follow the steps for your platform.
 
@@ -37,7 +81,9 @@ Download the latest release from the [GitHub releases page](https://github.com/b
 
 Optionally, move the binary to a folder in your PATH, or add its location to your `PATH` environment variable via **System Properties → Environment Variables**.
 
-### Option 2: Build from Source
+### Build from Source
+
+Building from source requires Go and Task (see [Development](#development)).
 
 #### Using Task
 
@@ -56,6 +102,12 @@ go build -o gotail main.go
 ```
 
 Then move the binary to your PATH as described above.
+
+You can confirm the installation with:
+
+```sh
+gotail --version
+```
 
 ## Usage
 
@@ -92,8 +144,10 @@ exit_node: n          # 'y' to enable exit node functionality
 subnet_router: n      # 'y' to enable subnet router functionality
 subnets: ""           # comma-separated list of subnets (required if subnet_router is 'y')
 hostname: raspberrypi # hostname for your device
-auth_key: tskey_1234  # your Tailscale auth key
+auth_key: tskey-auth-xxxxxxxxxxxxxxxxx # your Tailscale auth key
 ```
+
+> Keep your auth key secret — treat the configuration file like any other credential and avoid committing it to version control.
 
 Then run `gotail` with the configuration file.
 
@@ -129,6 +183,26 @@ tailscale ssh ubuntu@<hostname>
 
 Depending on your ACL configuration, you may be prompted to authenticate with Tailscale.
 
+## Development
+
+For development and source builds, the following tools are needed:
+
+- **Go**: Version 1.26 or later. Download from [golang.org](https://go.dev/dl/).
+- **Task**: A task runner / build tool. Installation instructions and documentation can be found at [taskfile.dev](https://taskfile.dev/).
+
+Common tasks:
+
+```sh
+task test     # run the unit tests
+task build    # build the binary for your current platform
+task install  # build and install into your user bin directory
+task clean    # remove build artifacts and the installed binary
+```
+
 ## Contributing
 
 Feel free to open any issues or pull requests!
+
+## License
+
+gotail is released under the [BSD-3-Clause License](LICENSE).
