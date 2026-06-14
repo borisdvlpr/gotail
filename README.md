@@ -57,7 +57,8 @@ sudo apk add gotail
 winget install borisdvlpr.gotail
 ```
 
-> Linux package hosting is graciously provided by [Cloudsmith](https://cloudsmith.com), the only fully hosted, cloud-native, universal package management solution.
+> Linux package repository hosting is graciously provided by [Cloudsmith](https://cloudsmith.com). Cloudsmith is the only fully hosted, cloud-native, universal 
+package management solution, that enables your organization to create, store and share packages in any format, to any place, with total confidence.
 
 ### Pre-built Binary
 
