@@ -5,9 +5,9 @@
 [![License](https://img.shields.io/github/license/borisdvlpr/gotail)](LICENSE)
 [![OSS hosting by Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith)](https://cloudsmith.com)
 
-Bootstrap Tailscale into your Raspberry Pi and join it to your tailnet automatically from the very first boot. This project is a Go implementation of the original Tailscale grafter for Raspberry Pi, [tailgraft](https://github.com/tailscale-dev/tailgraft/blob/main/README.md).
+Bootstrap Tailscale into your Raspberry Pi and join it to your tailnet automatically from the very first boot.
 
-gotail is intended to be used after you've flashed Ubuntu onto an SD card, but before you've booted it in a Raspberry Pi for the first time. It supports Linux, macOS, and Windows.
+Available for Linux, macOS, and Windows, gotail is meant to be run after flashing an SD card but before the device's first boot. It's a Go implementation of the original Tailscale grafter for Raspberry Pi, [tailgraft](https://github.com/tailscale-dev/tailgraft/blob/main/README.md).
 
 ## Table of Contents
 
