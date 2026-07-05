@@ -9,6 +9,7 @@ dist/
 
 # test binary, built with `go test -c`
 *.test
+*-test.yaml
 
 # output of the go coverage tool, specifically when used with LiteIDE
 *.out
