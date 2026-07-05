@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/borisdvlpr/gotail/internal/config"
 	ierror "github.com/borisdvlpr/gotail/internal/error"
 	"github.com/borisdvlpr/gotail/internal/file"
+	"github.com/borisdvlpr/gotail/internal/format"
 	"github.com/borisdvlpr/gotail/internal/input"
 	"github.com/borisdvlpr/gotail/internal/system"
 	"github.com/spf13/afero"
@@ -118,7 +118,7 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 			flags = append(flags, fmt.Sprintf("--authkey=%s", cfg.AuthKey))
 			cmd.Println("Adding Tailscale to 'user-data' file.")
 
-			initConfig = append(initConfig, fmt.Sprintf("  - [ %s ]\n", strings.Join(flags, ", ")))
+			initConfig = append(initConfig, "  - "+format.BuildRunCmd(flags)+"\n")
 
 			initFile, err := deps.Fsys.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
 			if err != nil {
