@@ -17,6 +17,8 @@ import (
 	"github.com/spf13/afero"
 )
 
+var errFound = errors.New("file found")
+
 // DriveSearcher is the platform-specific strategy for locating a file across
 // the drives or mountpoints visible on the current OS. Each platform provides
 // its own implementation via NewSystemSearcher; an unsupported operating system
@@ -62,13 +64,13 @@ func GetFilePath(fsys afero.Fs, rootDir string, fileName string) (string, error)
 
 		if !info.IsDir() && info.Name() == fileName {
 			foundPath = path
-			return filepath.SkipDir
+			return errFound
 		}
 
 		return nil
 	})
 
-	if err != nil && !errors.Is(err, filepath.SkipDir) {
+	if err != nil && !errors.Is(err, errFound) {
 		return "", fmt.Errorf("%w", err)
 	}
 
