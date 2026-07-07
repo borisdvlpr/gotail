@@ -7,6 +7,7 @@ type Config struct {
 	SubnetRouter string `yaml:"subnet_router"`
 	Subnets      string `yaml:"subnets"`
 	Hostname     string `yaml:"hostname"`
+	Tags         string `yaml:"tags"`
 	AuthKey      string `yaml:"auth_key"`
 }
 
