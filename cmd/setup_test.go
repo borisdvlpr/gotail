@@ -63,7 +63,7 @@ func TestSetup_Success(t *testing.T) {
 	contentBytes, _ := afero.ReadFile(mockFS, userDataPath)
 	content := string(contentBytes)
 
-	if !strings.Contains(content, "- [ sh, -c, sudo hostnamectl hostname raspberrypi ]") {
+	if !strings.Contains(content, `- ["sh", "-c", "sudo hostnamectl hostname raspberrypi"]`) {
 		t.Errorf("Expected user-data to contain hostname 'raspberrypi', got:\n%s", content)
 	}
 }
