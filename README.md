@@ -2,6 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/borisdvlpr/gotail)](https://github.com/borisdvlpr/gotail/releases)
 [![CI](https://github.com/borisdvlpr/gotail/actions/workflows/pull-request.yaml/badge.svg)](https://github.com/borisdvlpr/gotail/actions/workflows/pull-request.yaml)
+[![Codecov](https://codecov.io/github/borisdvlpr/gotail/graph/badge.svg?token=QJTVO5NX58)](https://codecov.io/github/borisdvlpr/gotail)
 [![License](https://img.shields.io/github/license/borisdvlpr/gotail)](LICENSE)
 [![OSS hosting by Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith)](https://cloudsmith.com)
 
