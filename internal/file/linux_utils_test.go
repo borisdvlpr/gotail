@@ -12,13 +12,34 @@ type IsMountpointSearchableTestCase struct {
 
 func TestIsMountpointSearchable(t *testing.T) {
 	testCases := []IsMountpointSearchableTestCase{
-		{id: "valid_media", mountpoint: "/media/usb", expected: true},
-		{id: "valid_mnt", mountpoint: "/mnt/data", expected: true},
-		{id: "valid_run_media", mountpoint: "/run/media/user/disk", expected: true},
-		{id: "root", mountpoint: "/", expected: false},
-		{id: "empty", mountpoint: "", expected: false},
-		{id: "invalid_prefix", mountpoint: "/home/user", expected: false},
-		{id: "invalid_chars", mountpoint: "/mnt/\x00bad", expected: false},
+		{
+			id:         "valid_media",
+			mountpoint: "/media/usb",
+			expected:   true},
+		{
+			id:         "valid_mnt",
+			mountpoint: "/mnt/data",
+			expected:   true},
+		{
+			id:         "valid_run_media",
+			mountpoint: "/run/media/user/disk",
+			expected:   true},
+		{
+			id:         "root",
+			mountpoint: "/",
+			expected:   false},
+		{
+			id:         "empty",
+			mountpoint: "",
+			expected:   false},
+		{
+			id:         "invalid_prefix",
+			mountpoint: "/home/user",
+			expected:   false},
+		{
+			id:         "invalid_chars",
+			mountpoint: "/mnt/\x00bad",
+			expected:   false},
 	}
 
 	for _, tc := range testCases {

@@ -23,62 +23,62 @@ type ValidateTagsTestCase struct {
 func TestValidateSubnet(t *testing.T) {
 	testCases := []ValidateSubnetsTestCase{
 		{
-			id:            "case_01",
+			id:            "single_ipv4_valid",
 			subnet:        "192.168.1.1/24",
 			expectedError: nil,
 		},
 		{
-			id:            "case_02",
+			id:            "multiple_ipv4_valid",
 			subnet:        "192.168.1.1/24,192.168.2.2/24",
 			expectedError: nil,
 		},
 		{
-			id:            "case_03",
+			id:            "single_ipv6_valid",
 			subnet:        "2001:db8::/32",
 			expectedError: nil,
 		},
 		{
-			id:            "case_04",
+			id:            "multiple_ipv6_valid",
 			subnet:        "2001:db8::/32,2001:db8::/32",
 			expectedError: nil,
 		},
 		{
-			id:            "case_05",
+			id:            "empty_string",
 			subnet:        "",
 			expectedError: ierror.StatusError{Status: ": invalid subnet format", StatusCode: 1},
 		},
 		{
-			id:            "case_06",
+			id:            "ipv4_missing_prefix_length",
 			subnet:        "192.168.1.1",
 			expectedError: ierror.StatusError{Status: "192.168.1.1: invalid subnet format", StatusCode: 1},
 		},
 		{
-			id:            "case_07",
+			id:            "trailing_comma",
 			subnet:        "192.168.1.1/24,",
 			expectedError: ierror.StatusError{Status: ": invalid subnet format", StatusCode: 1},
 		},
 		{
-			id:            "case_08",
+			id:            "leading_comma",
 			subnet:        ",192.168.1.1",
 			expectedError: ierror.StatusError{Status: ": invalid subnet format", StatusCode: 1},
 		},
 		{
-			id:            "case_09",
+			id:            "second_ipv4_missing_prefix_length",
 			subnet:        "192.168.1.1/24,192.168.2.2",
 			expectedError: ierror.StatusError{Status: "192.168.2.2: invalid subnet format", StatusCode: 1},
 		},
 		{
-			id:            "case_10",
+			id:            "incomplete_ipv4",
 			subnet:        "192.168.1.",
 			expectedError: ierror.StatusError{Status: "192.168.1.: invalid subnet format", StatusCode: 1},
 		},
 		{
-			id:            "case_11",
+			id:            "ipv6_missing_prefix_length",
 			subnet:        "2001:db8::",
 			expectedError: ierror.StatusError{Status: "2001:db8::: invalid subnet format", StatusCode: 1},
 		},
 		{
-			id:            "case_12",
+			id:            "second_ipv6_missing_prefix_length",
 			subnet:        "2001:db8::/32,2001:db8::",
 			expectedError: ierror.StatusError{Status: "2001:db8::: invalid subnet format", StatusCode: 1},
 		},
@@ -91,7 +91,6 @@ func TestValidateSubnet(t *testing.T) {
 		}
 	}
 }
-
 func TestValidateTags(t *testing.T) {
 	testCases := []ValidateTagsTestCase{
 		{
@@ -158,7 +157,7 @@ func TestValidateTags(t *testing.T) {
 
 			var statusErr ierror.StatusError
 			if !errors.As(err, &statusErr) {
-				t.Errorf("%v: ValidateTags(%q) returned %T, expected ierr.StatusError", tc.id, tc.input, err)
+				t.Errorf("%v: ValidateTags(%q) returned %T, expected ierror.StatusError", tc.id, tc.input, err)
 
 			} else if statusErr.StatusCode != 1 {
 				t.Errorf("%v: ValidateTags(%q) returned status code %d, expected 1", tc.id, tc.input, statusErr.StatusCode)

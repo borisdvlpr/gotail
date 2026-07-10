@@ -31,17 +31,17 @@ type MockRootCheckerTestCase struct {
 func TestMockRootChecker(t *testing.T) {
 	testCases := []MockRootCheckerTestCase{
 		{
-			id:            "case_01",
+			id:            "root_check_passes",
 			checker:       MockRootChecker{shouldError: false},
 			expectedError: nil,
 		},
 		{
-			id:            "case_02",
+			id:            "root_check_fails_with_message",
 			checker:       MockRootChecker{shouldError: true, errorMsg: "error: permission denied"},
 			expectedError: ierror.StatusError{Status: "error: permission denied", StatusCode: 1},
 		},
 		{
-			id:            "case_03",
+			id:            "root_check_fails_without_message",
 			checker:       MockRootChecker{shouldError: true, errorMsg: ""},
 			expectedError: ierror.StatusError{Status: "", StatusCode: 1},
 		},

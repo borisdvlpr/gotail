@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	ierr "github.com/borisdvlpr/gotail/internal/error"
+	ierror "github.com/borisdvlpr/gotail/internal/error"
 )
 
 type ValidateConfigTestCase struct {
@@ -28,17 +28,17 @@ func TestConfigValidate(t *testing.T) {
 		{
 			id:            "missing_auth_key",
 			config:        Config{ExitNode: "y", SubnetRouter: "n", Hostname: "test-host", AuthKey: ""},
-			expectedError: ierr.StatusError{Status: "auth key is required", StatusCode: 1},
+			expectedError: ierror.StatusError{Status: "auth key is required", StatusCode: 1},
 		},
 		{
 			id:            "missing_hostname",
 			config:        Config{ExitNode: "y", SubnetRouter: "n", Hostname: "", AuthKey: "tskey-abcd1234"},
-			expectedError: ierr.StatusError{Status: "hostname is required", StatusCode: 1},
+			expectedError: ierror.StatusError{Status: "hostname is required", StatusCode: 1},
 		},
 		{
 			id:            "subnet_router_without_subnets",
 			config:        Config{ExitNode: "n", SubnetRouter: "y", Subnets: "", Hostname: "subnet-router", AuthKey: "tskey-abcd1234"},
-			expectedError: ierr.StatusError{Status: "subnets are required when subnet router is enabled", StatusCode: 1},
+			expectedError: ierror.StatusError{Status: "subnets are required when subnet router is enabled", StatusCode: 1},
 		},
 		{
 			id:            "simple_node_valid",
@@ -58,7 +58,7 @@ func TestConfigValidate(t *testing.T) {
 		{
 			id:            "tags_do_not_mask_missing_auth_key",
 			config:        Config{ExitNode: "n", SubnetRouter: "n", Hostname: "tagged-node", Tags: "server", AuthKey: ""},
-			expectedError: ierr.StatusError{Status: "auth key is required", StatusCode: 1},
+			expectedError: ierror.StatusError{Status: "auth key is required", StatusCode: 1},
 		},
 		{
 			id:            "tags_with_full_config_valid",

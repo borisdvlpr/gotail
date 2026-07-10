@@ -23,21 +23,21 @@ func TestPromptUser(t *testing.T) {
 
 	testCases := []PromptUserTestCase{
 		{
-			id:             "case_01",
+			id:             "valid_allowed_reply",
 			input:          "y\n",
 			allowedInputs:  []string{"y", "n"},
 			expectedAnswer: "y",
 			expectedError:  nil,
 		},
 		{
-			id:             "case_02",
+			id:             "freeform_input_accepted",
 			input:          "tskey_test_1234_5678\n",
 			allowedInputs:  nil,
 			expectedAnswer: "tskey_test_1234_5678",
 			expectedError:  nil,
 		},
 		{
-			id:             "case_03",
+			id:             "disallowed_reply_aborts",
 			input:          "asdf\n",
 			allowedInputs:  []string{"y", "n"},
 			expectedAnswer: "y",
