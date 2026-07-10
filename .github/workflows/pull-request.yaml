@@ -3,6 +3,9 @@ name: Pull Request
 on:
   pull_request:
     branches: [main]
+  
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -18,3 +21,11 @@ jobs:
 
       - name: Test
         uses: ./.github/actions/test
+      
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.txt
+          fail_ci_if_error: false

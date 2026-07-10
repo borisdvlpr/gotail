@@ -23,6 +23,14 @@ jobs:
       - name: Test
         uses: ./.github/actions/test
 
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.txt
+          fail_ci_if_error: false
+
   release:
     name: Release
     runs-on: ubuntu-latest
