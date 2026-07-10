@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/borisdvlpr/gotail/internal/config"
 	ierror "github.com/borisdvlpr/gotail/internal/error"
 	"github.com/borisdvlpr/gotail/internal/file"
+	"github.com/borisdvlpr/gotail/internal/format"
 	"github.com/borisdvlpr/gotail/internal/input"
 	"github.com/borisdvlpr/gotail/internal/system"
 	"github.com/spf13/afero"
@@ -35,9 +35,8 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 		Short: "Setup Tailscale on a new device",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			flags := []string{"tailscale", "up", "--ssh"}
-			initConfig := []string{
-				"runcmd:\n",
-				`  - [ sh, -c, curl -fsSL https://tailscale.com/install.sh | sh ]` + "\n",
+			runcmds := [][]string{
+				{"sh", "-c", "curl -fsSL https://tailscale.com/install.sh | sh"},
 			}
 			cfg := &config.Config{}
 
@@ -62,7 +61,6 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				if err = yaml.Unmarshal(configFile, &cfg); err != nil {
 					return err
 				}
-
 			} else {
 				cfg.ExitNode, err = input.PromptUser("Setup device as an exit node?", []string{"y", "n"})
 				if err != nil {
@@ -82,6 +80,11 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				}
 
 				cfg.Hostname, err = input.PromptUser("Please enter a hostname for this device:", nil)
+				if err != nil {
+					return err
+				}
+
+				cfg.Tags, err = input.PromptUser("Please enter tags for this device (comma separated):", nil)
 				if err != nil {
 					return err
 				}
@@ -106,19 +109,41 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 					return err
 				}
 
-				initConfig = append(initConfig, `  - [ sh, -c, echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && sudo sysctl -p /etc/sysctl.d/99-tailscale.conf ]`+"\n")
+				runcmds = append(runcmds, []string{
+					"sh", "-c",
+					"echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && " +
+						"echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && " +
+						"sudo sysctl -p /etc/sysctl.d/99-tailscale.conf",
+				})
 				flags = append(flags, fmt.Sprintf("--advertise-routes=%s", cfg.Subnets))
 			}
 
 			if cfg.Hostname != "" {
 				flags = append(flags, fmt.Sprintf("--hostname=%s", cfg.Hostname))
-				initConfig = append(initConfig, fmt.Sprintf(`  - [ sh, -c, sudo hostnamectl hostname %s ]`+"\n", cfg.Hostname))
+				runcmds = append(runcmds, []string{
+					"sh", "-c", fmt.Sprintf("sudo hostnamectl hostname %s", cfg.Hostname),
+				})
+			}
+
+			if cfg.Tags != "" {
+				normalized, tagErr := input.ValidateTags(cfg.Tags)
+				if tagErr != nil {
+					return tagErr
+				}
+				cfg.Tags = normalized
+				flags = append(flags, fmt.Sprintf("--advertise-tags=%s", cfg.Tags))
+				cmd.Printf("This device will be tagged: %s.\n", cfg.Tags)
 			}
 
 			flags = append(flags, fmt.Sprintf("--authkey=%s", cfg.AuthKey))
+			runcmds = append(runcmds, flags)
+
 			cmd.Println("Adding Tailscale to 'user-data' file.")
 
-			initConfig = append(initConfig, fmt.Sprintf("  - [ %s ]\n", strings.Join(flags, ", ")))
+			initConfig := []string{"runcmd:\n"}
+			for _, rc := range runcmds {
+				initConfig = append(initConfig, "  - "+format.BuildRunCmd(rc)+"\n")
+			}
 
 			initFile, err := deps.Fsys.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
 			if err != nil {
@@ -134,8 +159,7 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 
 			writer := bufio.NewWriter(initFile)
 			for _, conf := range initConfig {
-				_, err = writer.WriteString(conf)
-				if err != nil {
+				if _, err = writer.WriteString(conf); err != nil {
 					return err
 				}
 			}

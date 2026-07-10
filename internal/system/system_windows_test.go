@@ -27,12 +27,12 @@ type CheckRootTestCase struct {
 func TestCheckRootWithChecker(t *testing.T) {
 	testCases := []CheckRootTestCase{
 		{
-			id:            "case_01",
+			id:            "elevated_passes",
 			checker:       MockElevationChecker{elevated: true, err: nil},
 			expectedError: nil,
 		},
 		{
-			id:      "case_02",
+			id:      "not_elevated_requires_admin",
 			checker: MockElevationChecker{elevated: false, err: nil},
 			expectedError: ierror.StatusError{
 				Status:     "setup must be run as administrator. please relaunch from an elevated shell (run as administrator).",
@@ -40,7 +40,7 @@ func TestCheckRootWithChecker(t *testing.T) {
 			},
 		},
 		{
-			id:            "case_03",
+			id:            "elevation_check_errors",
 			checker:       MockElevationChecker{elevated: false, err: errors.New("access denied")},
 			expectedError: ierror.StatusError{Status: "access denied", StatusCode: 1},
 		},

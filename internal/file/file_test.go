@@ -16,12 +16,12 @@ type GetFilePathTestCase struct {
 func TestGetFilePath(t *testing.T) {
 	testCases := []GetFilePathTestCase{
 		{
-			id:           "case_01",
+			id:           "valid_path",
 			file:         "user-data",
 			expectedPath: filepath.Join("file-test-dir", "user-data"),
 		},
 		{
-			id:           "case_02",
+			id:           "empty_path",
 			file:         "",
 			expectedPath: "",
 		},
