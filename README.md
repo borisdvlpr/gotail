@@ -142,11 +142,12 @@ Follow the prompts to configure your Tailscale settings.
 Create a YAML configuration file with your settings:
 
 ```yaml
-exit_node: n          # 'y' to enable exit node functionality
-subnet_router: n      # 'y' to enable subnet router functionality
-subnets: ""           # comma-separated list of subnets (required if subnet_router is 'y')
-hostname: raspberrypi # hostname for your device
-auth_key: tskey-auth-xxxxxxxxxxxxxxxxx # your Tailscale auth key
+exit_node: n                            # 'y' to offer this device as an exit node
+subnet_router: y                        # 'y' to advertise the subnet(s) below
+subnets: "192.0.2.1/24,192.168.2.1/24"  # comma-separated subnet(s) to advertise (required if subnet_router is 'y')
+hostname: raspberrypi                   # hostname for your device
+tags: tag-1,tag-2                       # comma-separated ACL tags to apply (must already exist under tagOwners in your ACL policy)
+auth_key: tskey-auth-xxxxxxxxxxxxxxxxx  # your Tailscale auth key
 ```
 
 > Keep your auth key secret — treat the configuration file like any other credential and avoid committing it to version control.
