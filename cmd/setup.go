@@ -105,9 +105,11 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 			}
 
 			if cfg.SubnetRouter == "y" && cfg.Subnets != "" {
-				if err = input.ValidateSubnets(cfg.Subnets); err != nil {
-					return err
+				normalized, subnetErr := input.ValidateSubnets(cfg.Subnets)
+				if subnetErr != nil {
+					return subnetErr
 				}
+				cfg.Subnets = normalized
 
 				runcmds = append(runcmds, []string{
 					"sh", "-c",

@@ -32,7 +32,7 @@ func TestSetup_Success(t *testing.T) {
 	mockFS := afero.NewMemMapFs()
 
 	configFile := "/tmp/config.yaml"
-	_ = afero.WriteFile(mockFS, configFile, []byte("exit_node: n\nsubnet_router: y\nsubnets: \"192.168.1.1/24,192.67.2.2/24,192.23.23.23/24\"\nhostname: raspberrypi\nauth_key: tskey_1234"), 0644)
+	_ = afero.WriteFile(mockFS, configFile, []byte("exit_node: n\nsubnet_router: y\nsubnets: \"192.168.1.0/24,192.67.2.0/24,192.23.23.0/24\"\nhostname: raspberrypi\nauth_key: tskey_1234"), 0644)
 
 	userDataPath := "/mnt/sdcard/user-data"
 	_ = mockFS.MkdirAll("/mnt/sdcard", 0755)
@@ -65,6 +65,44 @@ func TestSetup_Success(t *testing.T) {
 
 	if !strings.Contains(content, `- ["sh", "-c", "sudo hostnamectl hostname raspberrypi"]`) {
 		t.Errorf("Expected user-data to contain hostname 'raspberrypi', got:\n%s", content)
+	}
+}
+
+func TestSetup_SubnetsNormalized(t *testing.T) {
+	mockFS := afero.NewMemMapFs()
+
+	configFile := "/tmp/config.yaml"
+	_ = afero.WriteFile(mockFS, configFile, []byte("exit_node: n\nsubnet_router: y\nsubnets: \"192.168.1.0/24, 10.0.0.0/16\"\nhostname: raspberrypi\nauth_key: tskey_1234"), 0644)
+
+	userDataPath := "/mnt/sdcard/user-data"
+	_ = mockFS.MkdirAll("/mnt/sdcard", 0755)
+	_ = afero.WriteFile(mockFS, userDataPath, []byte("# cloud-config\n"), 0644)
+
+	setupDeps := SetupCommand{
+		Fsys:        mockFS,
+		RootChecker: MockRootChecker{ShouldError: false},
+		SystemSearcher: &file.SystemSearcher{
+			Fsys:     mockFS,
+			Searcher: &MockSearcher{},
+		},
+	}
+
+	setupCmd := NewSetupCmd(setupDeps)
+
+	var buf bytes.Buffer
+	setupCmd.SetOut(&buf)
+	setupCmd.SetErr(&buf)
+	setupCmd.SetArgs([]string{"--file", configFile})
+
+	if err := setupCmd.Execute(); err != nil {
+		t.Fatalf("Expected success, but got error: %v", err)
+	}
+
+	contentBytes, _ := afero.ReadFile(mockFS, userDataPath)
+	content := string(contentBytes)
+
+	if !strings.Contains(content, `"--advertise-routes=192.168.1.0/24,10.0.0.0/16"`) {
+		t.Errorf("Expected user-data to contain whitespace-free advertise-routes, got:\n%s", content)
 	}
 }
 

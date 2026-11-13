@@ -24,12 +24,12 @@ func TestValidateSubnet(t *testing.T) {
 	testCases := []ValidateSubnetsTestCase{
 		{
 			id:            "single_ipv4_valid",
-			subnet:        "192.168.1.1/24",
+			subnet:        "192.168.1.0/24",
 			expectedError: nil,
 		},
 		{
 			id:            "multiple_ipv4_valid",
-			subnet:        "192.168.1.1/24,192.168.2.2/24",
+			subnet:        "192.168.1.0/24,192.168.2.0/24",
 			expectedError: nil,
 		},
 		{
@@ -54,7 +54,7 @@ func TestValidateSubnet(t *testing.T) {
 		},
 		{
 			id:            "trailing_comma",
-			subnet:        "192.168.1.1/24,",
+			subnet:        "192.168.1.0/24,",
 			expectedError: ierror.StatusError{Status: ": invalid subnet format", StatusCode: 1},
 		},
 		{
@@ -64,7 +64,7 @@ func TestValidateSubnet(t *testing.T) {
 		},
 		{
 			id:            "second_ipv4_missing_prefix_length",
-			subnet:        "192.168.1.1/24,192.168.2.2",
+			subnet:        "192.168.1.0/24,192.168.2.2",
 			expectedError: ierror.StatusError{Status: "192.168.2.2: invalid subnet format", StatusCode: 1},
 		},
 		{
@@ -82,10 +82,25 @@ func TestValidateSubnet(t *testing.T) {
 			subnet:        "2001:db8::/32,2001:db8::",
 			expectedError: ierror.StatusError{Status: "2001:db8::: invalid subnet format", StatusCode: 1},
 		},
+		{
+			id:            "ipv4_host_bits_set",
+			subnet:        "192.168.1.1/24",
+			expectedError: ierror.StatusError{Status: "192.168.1.1/24: host bits set, expected 192.168.1.0/24", StatusCode: 1},
+		},
+		{
+			id:            "second_ipv4_host_bits_set",
+			subnet:        "192.168.1.0/24, 10.0.0.1/16",
+			expectedError: ierror.StatusError{Status: "10.0.0.1/16: host bits set, expected 10.0.0.0/16", StatusCode: 1},
+		},
+		{
+			id:            "ipv6_host_bits_set",
+			subnet:        "2001:db8::1/32",
+			expectedError: ierror.StatusError{Status: "2001:db8::1/32: host bits set, expected 2001:db8::/32", StatusCode: 1},
+		},
 	}
 
 	for _, tc := range testCases {
-		err := ValidateSubnets(tc.subnet)
+		_, err := ValidateSubnets(tc.subnet)
 		if !errors.Is(err, tc.expectedError) {
 			t.Errorf("%v: ValidateSubnets() error = %q, wantErr %q", tc.id, err, tc.expectedError)
 		}
