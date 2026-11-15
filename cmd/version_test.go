@@ -85,3 +85,19 @@ func TestVersion_CommandFormat(t *testing.T) {
 		t.Errorf("Expected output format 'gotail <version>', got '%s'", output)
 	}
 }
+
+func TestVersion_Flag(t *testing.T) {
+	testRootCmd, buf := makeVersionCommand()
+	testRootCmd.SetArgs([]string{"--version"})
+
+	err := testRootCmd.Execute()
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	output := buf.String()
+	expectedOutput := "gotail dev\n"
+	if output != expectedOutput {
+		t.Errorf("Expected output '%s', got '%s'", expectedOutput, output)
+	}
+}
