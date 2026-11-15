@@ -124,6 +124,10 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 			}
 
 			if cfg.Hostname != "" {
+				if err = input.ValidateHostname(cfg.Hostname); err != nil {
+					return err
+				}
+
 				flags = append(flags, fmt.Sprintf("--hostname=%s", cfg.Hostname))
 				runcmds = append(runcmds, []string{
 					"sh", "-c", fmt.Sprintf("sudo hostnamectl hostname %s", cfg.Hostname),
