@@ -9,7 +9,26 @@ import (
 	ierror "github.com/borisdvlpr/gotail/internal/error"
 )
 
-var tagRegexp = regexp.MustCompile(`^[a-z0-9-]+$`)
+var (
+	tagRegexp      = regexp.MustCompile(`^[a-z0-9-]+$`)
+	hostnameRegexp = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$`)
+)
+
+// ValidateHostname validates a device hostname as a single RFC 1123 label:
+// 1-63 letters, digits, and hyphens, not starting or ending with a hyphen.
+// The hostname is placed in a shell command run as root on first boot, so
+// anything outside that set is rejected. Returns a StatusError with status
+// code 1 if the hostname is invalid.
+func ValidateHostname(hostname string) error {
+	if !hostnameRegexp.MatchString(hostname) {
+		return ierror.StatusError{
+			Status:     fmt.Sprintf("%q: invalid hostname (expected 1-63 letters, digits, and hyphens, not starting or ending with a hyphen)", hostname),
+			StatusCode: 1,
+		}
+	}
+
+	return nil
+}
 
 // ValidateSubnets validates and normalizes a comma-separated list of subnets.
 // Each subnet must be in CIDR notation with no host bits set (e.g.
