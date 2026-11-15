@@ -144,6 +144,44 @@ func TestSetup_ExitNodeEnablesForwarding(t *testing.T) {
 	}
 }
 
+func TestSetup_Fail_InvalidHostname(t *testing.T) {
+	mockFS := afero.NewMemMapFs()
+
+	configFile := "/tmp/config.yaml"
+	_ = afero.WriteFile(mockFS, configFile, []byte("exit_node: n\nsubnet_router: n\nhostname: \"pi; reboot\"\nauth_key: tskey_1234"), 0644)
+
+	userDataPath := "/mnt/sdcard/user-data"
+	_ = mockFS.MkdirAll("/mnt/sdcard", 0755)
+	_ = afero.WriteFile(mockFS, userDataPath, []byte("# cloud-config\n"), 0644)
+
+	setupDeps := SetupCommand{
+		Fsys:        mockFS,
+		RootChecker: MockRootChecker{ShouldError: false},
+		SystemSearcher: &file.SystemSearcher{
+			Fsys:     mockFS,
+			Searcher: &MockSearcher{},
+		},
+	}
+
+	setupCmd := NewSetupCmd(setupDeps)
+
+	var buf bytes.Buffer
+	setupCmd.SetOut(&buf)
+	setupCmd.SetErr(&buf)
+	setupCmd.SetArgs([]string{"--file", configFile})
+
+	err := setupCmd.Execute()
+
+	if err == nil || !strings.Contains(err.Error(), "invalid hostname") {
+		t.Errorf("Expected 'invalid hostname' error, got: %v", err)
+	}
+
+	contentBytes, _ := afero.ReadFile(mockFS, userDataPath)
+	if content := string(contentBytes); content != "# cloud-config\n" {
+		t.Errorf("Expected user-data to be left unchanged, got:\n%s", content)
+	}
+}
+
 func TestSetup_Fail_RootCheck(t *testing.T) {
 	mockFS := afero.NewMemMapFs()
 
