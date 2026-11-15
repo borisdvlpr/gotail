@@ -2,6 +2,7 @@ package input
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	ierror "github.com/borisdvlpr/gotail/internal/error"
@@ -10,6 +11,12 @@ import (
 type ValidateSubnetsTestCase struct {
 	id            string
 	subnet        string
+	expectedError error
+}
+
+type ValidateHostnameTestCase struct {
+	id            string
+	hostname      string
 	expectedError error
 }
 
@@ -108,57 +115,17 @@ func TestValidateSubnet(t *testing.T) {
 }
 func TestValidateTags(t *testing.T) {
 	testCases := []ValidateTagsTestCase{
-		{
-			id:             "single_tag",
-			input:          "server",
-			expectedOutput: "tag:server",
-			expectError:    false,
-		},
-		{
-			id:             "multiple_tags",
-			input:          "server,prod",
-			expectedOutput: "tag:server,tag:prod",
-			expectError:    false,
-		},
-		{
-			id:             "hyphenated_name",
-			input:          "prod-2",
-			expectedOutput: "tag:prod-2",
-			expectError:    false},
-		{
-			id:             "uppercase_normalized",
-			input:          "Server",
-			expectedOutput: "tag:server",
-			expectError:    false},
-		{
-			id:             "whitespace_trimmed",
-			input:          " server , prod ",
-			expectedOutput: "tag:server,tag:prod",
-			expectError:    false},
-		{
-			id:          "prefix_included",
-			input:       "tag:server",
-			expectError: true},
-		{
-			id:          "space_in_name",
-			input:       "my server",
-			expectError: true},
-		{
-			id:          "underscore",
-			input:       "prod_env",
-			expectError: true},
-		{
-			id:          "special_char",
-			input:       "server!",
-			expectError: true},
-		{
-			id:          "trailing_comma",
-			input:       "server,",
-			expectError: true},
-		{
-			id:          "whitespace_only",
-			input:       "   ",
-			expectError: true},
+		{id: "single_tag", input: "server", expectedOutput: "tag:server", expectError: false},
+		{id: "multiple_tags", input: "server,prod", expectedOutput: "tag:server,tag:prod", expectError: false},
+		{id: "hyphenated_name", input: "prod-2", expectedOutput: "tag:prod-2", expectError: false},
+		{id: "uppercase_normalized", input: "Server", expectedOutput: "tag:server", expectError: false},
+		{id: "whitespace_trimmed", input: " server , prod ", expectedOutput: "tag:server,tag:prod", expectError: false},
+		{id: "prefix_included", input: "tag:server", expectError: true},
+		{id: "space_in_name", input: "my server", expectError: true},
+		{id: "underscore", input: "prod_env", expectError: true},
+		{id: "special_char", input: "server!", expectError: true},
+		{id: "trailing_comma", input: "server,", expectError: true},
+		{id: "whitespace_only", input: "   ", expectError: true},
 	}
 
 	for _, tc := range testCases {
@@ -188,6 +155,34 @@ func TestValidateTags(t *testing.T) {
 
 		if output != tc.expectedOutput {
 			t.Errorf("%v: ValidateTags(%q) = %q, expected %q", tc.id, tc.input, output, tc.expectedOutput)
+		}
+	}
+}
+
+func TestValidateHostname(t *testing.T) {
+	const reason = ": invalid hostname (expected 1-63 letters, digits, and hyphens, not starting or ending with a hyphen)"
+	maxLabel := strings.Repeat("a", 63)
+	tooLong := strings.Repeat("a", 64)
+
+	testCases := []ValidateHostnameTestCase{
+		{id: "simple_valid", hostname: "raspberrypi", expectedError: nil},
+		{id: "hyphenated_valid", hostname: "pi-01", expectedError: nil},
+		{id: "mixed_case_valid", hostname: "Pi4", expectedError: nil},
+		{id: "single_char_valid", hostname: "a", expectedError: nil},
+		{id: "max_length_valid", hostname: maxLabel, expectedError: nil},
+		{id: "too_long", hostname: tooLong, expectedError: ierror.StatusError{Status: `"` + tooLong + `"` + reason, StatusCode: 1}},
+		{id: "space_in_name", hostname: "my pi", expectedError: ierror.StatusError{Status: `"my pi"` + reason, StatusCode: 1}},
+		{id: "shell_metacharacters", hostname: "pi; reboot", expectedError: ierror.StatusError{Status: `"pi; reboot"` + reason, StatusCode: 1}},
+		{id: "leading_hyphen", hostname: "-pi", expectedError: ierror.StatusError{Status: `"-pi"` + reason, StatusCode: 1}},
+		{id: "trailing_hyphen", hostname: "pi-", expectedError: ierror.StatusError{Status: `"pi-"` + reason, StatusCode: 1}},
+		{id: "underscore", hostname: "pi_01", expectedError: ierror.StatusError{Status: `"pi_01"` + reason, StatusCode: 1}},
+		{id: "dotted_name", hostname: "pi.local", expectedError: ierror.StatusError{Status: `"pi.local"` + reason, StatusCode: 1}},
+	}
+
+	for _, tc := range testCases {
+		err := ValidateHostname(tc.hostname)
+		if !errors.Is(err, tc.expectedError) {
+			t.Errorf("%v: ValidateHostname() error = %q, wantErr %q", tc.id, err, tc.expectedError)
 		}
 	}
 }
