@@ -99,6 +99,15 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				return err
 			}
 
+			if cfg.ExitNode == "y" || cfg.SubnetRouter == "y" {
+				runcmds = append(runcmds, []string{
+					"sh", "-c",
+					"echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && " +
+						"echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && " +
+						"sudo sysctl -p /etc/sysctl.d/99-tailscale.conf",
+				})
+			}
+
 			if cfg.ExitNode == "y" {
 				flags = append(flags, "--advertise-exit-node")
 				cmd.Println("This device will be an exit node.")
@@ -111,12 +120,6 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				}
 				cfg.Subnets = normalized
 
-				runcmds = append(runcmds, []string{
-					"sh", "-c",
-					"echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && " +
-						"echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && " +
-						"sudo sysctl -p /etc/sysctl.d/99-tailscale.conf",
-				})
 				flags = append(flags, fmt.Sprintf("--advertise-routes=%s", cfg.Subnets))
 			}
 
