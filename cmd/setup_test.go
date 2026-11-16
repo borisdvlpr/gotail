@@ -215,6 +215,44 @@ func TestSetup_Fail_InvalidHostname(t *testing.T) {
 	}
 }
 
+func TestSetup_UserDataWithoutTrailingNewline(t *testing.T) {
+	mockFS := afero.NewMemMapFs()
+
+	configFile := "/tmp/config.yaml"
+	_ = afero.WriteFile(mockFS, configFile, []byte("exit_node: n\nsubnet_router: n\nhostname: raspberrypi\nauth_key: tskey_1234"), 0644)
+
+	userDataPath := "/mnt/sdcard/user-data"
+	_ = mockFS.MkdirAll("/mnt/sdcard", 0755)
+	_ = afero.WriteFile(mockFS, userDataPath, []byte("# cloud-config"), 0644)
+
+	setupDeps := SetupCommand{
+		Fsys:        mockFS,
+		RootChecker: MockRootChecker{ShouldError: false},
+		SystemSearcher: &file.SystemSearcher{
+			Fsys:     mockFS,
+			Searcher: &MockSearcher{},
+		},
+	}
+
+	setupCmd := NewSetupCmd(setupDeps)
+
+	var buf bytes.Buffer
+	setupCmd.SetOut(&buf)
+	setupCmd.SetErr(&buf)
+	setupCmd.SetArgs([]string{"--file", configFile})
+
+	if err := setupCmd.Execute(); err != nil {
+		t.Fatalf("Expected success, but got error: %v", err)
+	}
+
+	contentBytes, _ := afero.ReadFile(mockFS, userDataPath)
+	content := string(contentBytes)
+
+	if !strings.HasPrefix(content, "# cloud-config\n") || !strings.Contains(content, "\nruncmd:\n") {
+		t.Errorf("Expected 'runcmd:' on its own line after the existing content, got:\n%s", content)
+	}
+}
+
 func TestSetup_Fail_RootCheck(t *testing.T) {
 	mockFS := afero.NewMemMapFs()
 
