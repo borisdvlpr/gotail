@@ -149,7 +149,7 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 
 			fmt.Fprintln(cmd.OutOrStdout(), "Adding Tailscale to 'user-data' file.")
 
-			initConfig := []string{"runcmd:\n"}
+			initConfig := []string{"\nruncmd:\n"}
 			for _, rc := range runcmds {
 				initConfig = append(initConfig, "  - "+format.BuildRunCmd(rc)+"\n")
 			}
