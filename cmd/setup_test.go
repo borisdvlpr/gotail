@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -28,6 +30,36 @@ func (m *MockSearcher) Search(ctx context.Context, fsys afero.Fs, fileName strin
 	return file.GetFilePath(fsys, "/", fileName)
 }
 
+// captureOutput runs fn with os.Stdout and os.Stderr redirected to pipes and
+// returns what was written to each. The command under test must not have
+// SetOut/SetErr called, so cobra falls back to the real process streams.
+func captureOutput(t *testing.T, fn func()) (string, string) {
+	t.Helper()
+
+	origStdout, origStderr := os.Stdout, os.Stderr
+	defer func() { os.Stdout, os.Stderr = origStdout, origStderr }()
+
+	outR, outW, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("Failed to create stdout pipe: %v", err)
+	}
+
+	errR, errW, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("Failed to create stderr pipe: %v", err)
+	}
+
+	os.Stdout, os.Stderr = outW, errW
+	fn()
+	_ = outW.Close()
+	_ = errW.Close()
+
+	stdout, _ := io.ReadAll(outR)
+	stderr, _ := io.ReadAll(errR)
+
+	return string(stdout), string(stderr)
+}
+
 func TestSetup_Success(t *testing.T) {
 	mockFS := afero.NewMemMapFs()
 
@@ -48,16 +80,17 @@ func TestSetup_Success(t *testing.T) {
 	}
 
 	setupCmd := NewSetupCmd(setupDeps)
-
-	var buf bytes.Buffer
-	setupCmd.SetOut(&buf)
-	setupCmd.SetErr(&buf)
 	setupCmd.SetArgs([]string{"--file", configFile})
 
-	err := setupCmd.Execute()
+	var err error
+	stdout, stderr := captureOutput(t, func() { err = setupCmd.Execute() })
 
 	if err != nil {
 		t.Fatalf("Expected success, but got error: %v", err)
+	}
+
+	if !strings.Contains(stdout, "Tailscale will be installed on boot") || stderr != "" {
+		t.Errorf("Expected progress messages on stdout only, got stdout:\n%s\nstderr:\n%s", stdout, stderr)
 	}
 
 	contentBytes, _ := afero.ReadFile(mockFS, userDataPath)
