@@ -86,6 +86,23 @@ func TestVersion_CommandFormat(t *testing.T) {
 	}
 }
 
+func TestVersion_CommandWritesToStdout(t *testing.T) {
+	rootCmd.SetOut(nil)
+	rootCmd.SetErr(nil)
+	rootCmd.SetArgs([]string{"version"})
+
+	var err error
+	stdout, stderr := captureOutput(t, func() { err = rootCmd.Execute() })
+
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	if stdout != "gotail dev\n" || stderr != "" {
+		t.Errorf("Expected 'gotail dev' on stdout only, got stdout '%s', stderr '%s'", stdout, stderr)
+	}
+}
+
 func TestVersion_Flag(t *testing.T) {
 	testRootCmd, buf := makeVersionCommand()
 	testRootCmd.SetArgs([]string{"--version"})
