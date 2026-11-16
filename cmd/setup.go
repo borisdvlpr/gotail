@@ -55,11 +55,13 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 			if confPath != "" {
 				configFile, err := afero.ReadFile(deps.Fsys, confPath)
 				if err != nil {
-					return err
+					status := fmt.Sprintf("cannot read config file: %s", err)
+					return ierror.StatusError{Status: status, StatusCode: 66} // EX_NOINPUT
 				}
 
 				if err = yaml.Unmarshal(configFile, &cfg); err != nil {
-					return err
+					status := fmt.Sprintf("invalid config file: %s", err)
+					return ierror.StatusError{Status: status, StatusCode: 65} // EX_DATAERR
 				}
 			} else {
 				cfg.ExitNode, err = input.PromptUser("Setup device as an exit node?", []string{"y", "n"})
@@ -156,7 +158,8 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 
 			initFile, err := deps.Fsys.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
 			if err != nil {
-				return err
+				status := fmt.Sprintf("cannot open user-data file: %s", err)
+				return ierror.StatusError{Status: status, StatusCode: 74} // EX_IOERR
 			}
 
 			defer func() {
@@ -169,12 +172,14 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 			writer := bufio.NewWriter(initFile)
 			for _, conf := range initConfig {
 				if _, err = writer.WriteString(conf); err != nil {
-					return err
+					status := fmt.Sprintf("cannot write to user-data file: %s", err)
+					return ierror.StatusError{Status: status, StatusCode: 74} // EX_IOERR
 				}
 			}
 
 			if err = writer.Flush(); err != nil {
-				return err
+				status := fmt.Sprintf("cannot write to user-data file: %s", err)
+				return ierror.StatusError{Status: status, StatusCode: 74} // EX_IOERR
 			}
 
 			fmt.Fprintln(cmd.OutOrStdout(), "Tailscale will be installed on boot. Please eject your SD card and boot your Raspberry Pi.")
