@@ -49,7 +49,7 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				return err
 			}
 
-			cmd.Printf("Found 'user-data' file at '%s'.\n", filePath)
+			fmt.Fprintf(cmd.OutOrStdout(), "Found 'user-data' file at '%s'.\n", filePath)
 
 			confPath := viper.GetString("file")
 			if confPath != "" {
@@ -110,7 +110,7 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 
 			if cfg.ExitNode == "y" {
 				flags = append(flags, "--advertise-exit-node")
-				cmd.Println("This device will be an exit node.")
+				fmt.Fprintln(cmd.OutOrStdout(), "This device will be an exit node.")
 			}
 
 			if cfg.SubnetRouter == "y" && cfg.Subnets != "" {
@@ -141,13 +141,13 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				}
 				cfg.Tags = normalized
 				flags = append(flags, fmt.Sprintf("--advertise-tags=%s", cfg.Tags))
-				cmd.Printf("This device will be tagged: %s.\n", cfg.Tags)
+				fmt.Fprintf(cmd.OutOrStdout(), "This device will be tagged: %s.\n", cfg.Tags)
 			}
 
 			flags = append(flags, fmt.Sprintf("--authkey=%s", cfg.AuthKey))
 			runcmds = append(runcmds, flags)
 
-			cmd.Println("Adding Tailscale to 'user-data' file.")
+			fmt.Fprintln(cmd.OutOrStdout(), "Adding Tailscale to 'user-data' file.")
 
 			initConfig := []string{"runcmd:\n"}
 			for _, rc := range runcmds {
@@ -177,7 +177,7 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				return err
 			}
 
-			cmd.Println("Tailscale will be installed on boot. Please eject your SD card and boot your Raspberry Pi.")
+			fmt.Fprintln(cmd.OutOrStdout(), "Tailscale will be installed on boot. Please eject your SD card and boot your Raspberry Pi.")
 			return nil
 		},
 	}
