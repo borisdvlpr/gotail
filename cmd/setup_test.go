@@ -3,12 +3,14 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 	"testing"
 
+	ierror "github.com/borisdvlpr/gotail/internal/error"
 	"github.com/borisdvlpr/gotail/internal/file"
 	"github.com/spf13/afero"
 )
@@ -310,5 +312,106 @@ func TestSetup_Fail_FileNotFound(t *testing.T) {
 
 	if err != nil && !strings.Contains(err.Error(), "cannot access user-data") {
 		t.Errorf("Expected 'cannot access user-data' error, got: %v", err)
+	}
+}
+
+// MockFailingWriteFs wraps an afero.Fs so that every file opened through
+// OpenFile rejects writes, simulating an I/O failure on the SD card.
+type MockFailingWriteFs struct {
+	afero.Fs
+}
+
+func (m MockFailingWriteFs) OpenFile(name string, flag int, perm os.FileMode) (afero.File, error) {
+	f, err := m.Fs.OpenFile(name, flag, perm)
+	if err != nil {
+		return nil, err
+	}
+	return mockFailingWriteFile{f}, nil
+}
+
+type mockFailingWriteFile struct {
+	afero.File
+}
+
+func (mockFailingWriteFile) Write([]byte) (int, error) {
+	return 0, errors.New("input/output error")
+}
+
+type SetupIOErrorTestCase struct {
+	id           string
+	config       string
+	wrapFs       func(afero.Fs) afero.Fs
+	expectedCode int
+}
+
+func TestSetup_IOErrorExitCodes(t *testing.T) {
+	validConfig := "exit_node: n\nsubnet_router: n\nhostname: raspberrypi\nauth_key: tskey_1234"
+	noWrap := func(fs afero.Fs) afero.Fs { return fs }
+
+	testCases := []SetupIOErrorTestCase{
+		{
+			id:           "config_file_missing",
+			config:       "",
+			wrapFs:       noWrap,
+			expectedCode: 66, // EX_NOINPUT
+		},
+		{
+			id:           "config_file_invalid_yaml",
+			config:       "exit_node: [",
+			wrapFs:       noWrap,
+			expectedCode: 65, // EX_DATAERR
+		},
+		{
+			id:           "user_data_open_fails",
+			config:       validConfig,
+			wrapFs:       afero.NewReadOnlyFs,
+			expectedCode: 74, // EX_IOERR
+		},
+		{
+			id:           "user_data_write_fails",
+			config:       validConfig,
+			wrapFs:       func(fs afero.Fs) afero.Fs { return MockFailingWriteFs{fs} },
+			expectedCode: 74, // EX_IOERR
+		},
+	}
+
+	for _, tc := range testCases {
+		mockFS := afero.NewMemMapFs()
+
+		configFile := "/tmp/config.yaml"
+		if tc.config != "" {
+			_ = afero.WriteFile(mockFS, configFile, []byte(tc.config), 0644)
+		}
+
+		_ = mockFS.MkdirAll("/mnt/sdcard", 0755)
+		_ = afero.WriteFile(mockFS, "/mnt/sdcard/user-data", []byte("# cloud-config\n"), 0644)
+
+		setupDeps := SetupCommand{
+			Fsys:        tc.wrapFs(mockFS),
+			RootChecker: MockRootChecker{ShouldError: false},
+			SystemSearcher: &file.SystemSearcher{
+				Fsys:     mockFS,
+				Searcher: &MockSearcher{},
+			},
+		}
+
+		setupCmd := NewSetupCmd(setupDeps)
+
+		var buf bytes.Buffer
+		setupCmd.SetOut(&buf)
+		setupCmd.SetErr(&buf)
+		setupCmd.SetArgs([]string{"--file", configFile})
+
+		err := setupCmd.Execute()
+
+		var statusErr ierror.StatusError
+		if !errors.As(err, &statusErr) {
+			t.Errorf("%v: Execute() returned %v (%T), expected ierror.StatusError", tc.id, err, err)
+			continue
+		}
+
+		if statusErr.StatusCode != tc.expectedCode {
+			t.Errorf("%v: Execute() returned status code %d (%q), expected %d", tc.id, statusErr.StatusCode, statusErr, tc.expectedCode)
+		}
 	}
 }
