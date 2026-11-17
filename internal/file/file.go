@@ -121,3 +121,27 @@ func drainSearchChan(cancel context.CancelFunc, c chan SearchResult) (string, er
 
 	return "", nil
 }
+
+// searchVolumes locates fileName under volumesDir, the directory where macOS
+// mounts removable drives (/Volumes), searching one volume at a time. Walk
+// errors on a volume (e.g. a permission error on an unrelated disk) are
+// treated as "no match" so the remaining volumes still get searched, as the
+// Linux and Windows searchers do. An error is returned only if volumesDir
+// itself cannot be read.
+func searchVolumes(fsys afero.Fs, volumesDir string, fileName string) (string, error) {
+	volumes, err := afero.ReadDir(fsys, volumesDir)
+	if err != nil {
+		return "", fmt.Errorf("%w", err)
+	}
+
+	for _, volume := range volumes {
+		filePath, err := GetFilePath(fsys, filepath.Join(volumesDir, volume.Name()), fileName)
+		if err != nil || filePath == "" {
+			continue
+		}
+
+		return filePath, nil
+	}
+
+	return "", nil
+}

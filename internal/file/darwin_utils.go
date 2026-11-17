@@ -25,5 +25,5 @@ func NewSystemSearcher(fsys afero.Fs) *SystemSearcher {
 // drives. It returns the path of the first match, or an empty string if not
 // found. No concurrency is needed as the search is a single synchronous walk.
 func (ds *DarwinSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string) (string, error) {
-	return GetFilePath(fsys, "/Volumes", fileName)
+	return searchVolumes(fsys, "/Volumes", fileName)
 }
