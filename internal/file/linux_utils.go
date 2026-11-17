@@ -176,6 +176,6 @@ func isMountpointSearchable(mountpoint string) bool {
 	}
 
 	return slices.ContainsFunc(validMountPrefixes, func(s string) bool {
-		return strings.HasPrefix(mountpoint, s)
+		return mountpoint == s || strings.HasPrefix(mountpoint, s+"/")
 	})
 }
