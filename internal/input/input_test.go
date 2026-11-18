@@ -37,11 +37,10 @@ func TestPromptUser(t *testing.T) {
 			expectedError:  nil,
 		},
 		{
-			id:             "disallowed_reply_aborts",
-			input:          "asdf\n",
-			allowedInputs:  []string{"y", "n"},
-			expectedAnswer: "y",
-			expectedError:  ierror.StatusError{Status: "abort", StatusCode: 1},
+			id:            "disallowed_reply_aborts",
+			input:         "asdf\n",
+			allowedInputs: []string{"y", "n"},
+			expectedError: ierror.StatusError{Status: "abort", StatusCode: 1},
 		},
 	}
 
@@ -65,11 +64,11 @@ func TestPromptUser(t *testing.T) {
 		fmt.Println("")
 
 		if !errors.Is(err, tc.expectedError) {
-			t.Errorf("PromptUser() error = %q, wantErr %q", err, tc.expectedError)
+			t.Errorf("%v: PromptUser() error = %q, wantErr %q", tc.id, err, tc.expectedError)
 		}
 
 		if tc.expectedError == nil && answer != tc.expectedAnswer {
-			t.Errorf("PromptUser() = %v, want %v", answer, tc.expectedAnswer)
+			t.Errorf("%v: PromptUser() = %v, want %v", tc.id, answer, tc.expectedAnswer)
 		}
 	}
 }

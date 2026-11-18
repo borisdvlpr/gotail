@@ -27,7 +27,7 @@ type ValidateTagsTestCase struct {
 	expectError    bool
 }
 
-func TestValidateSubnet(t *testing.T) {
+func TestValidateSubnets(t *testing.T) {
 	testCases := []ValidateSubnetsTestCase{
 		{
 			id:            "single_ipv4_valid",
@@ -113,6 +113,7 @@ func TestValidateSubnet(t *testing.T) {
 		}
 	}
 }
+
 func TestValidateTags(t *testing.T) {
 	testCases := []ValidateTagsTestCase{
 		{id: "single_tag", input: "server", expectedOutput: "tag:server", expectError: false},
