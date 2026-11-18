@@ -91,8 +91,8 @@ func NewSystemSearcher(fsys afero.Fs) *SystemSearcher {
 
 // Search lists block devices and spawns a goroutine per mountpoint group
 // (device-level and child-level). Loop devices are skipped. The first
-// successful hit is sent on c; ctx cancellation stops remaining workers.
-// Search closes c when all goroutines have finished.
+// successful hit is sent on searchChan; ctx cancellation stops remaining workers.
+// Search closes searchChan when all goroutines have finished.
 func (ls *LinuxSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string) (string, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

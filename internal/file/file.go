@@ -78,8 +78,8 @@ func GetFilePath(fsys afero.Fs, rootDir string, fileName string) (string, error)
 }
 
 // FindUserData searches for the cloud-init configuration file on the current system.
-// On macOS, it searches directly within /Volumes. On Linux and Windows, it
-// delegates to the platform-specific DriveSearcher wired in by NewSystemSearcher.
+// It delegates to the platform-specific DriveSearcher wired in by NewSystemSearcher;
+// a nil DriveSearcher means the current operating system is unsupported.
 // Returns the file path on success, or a StatusError if not found or unsupported.
 func (s *SystemSearcher) FindUserData() (string, error) {
 	const fileName = "user-data"
