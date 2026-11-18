@@ -144,9 +144,9 @@ Create a YAML configuration file with your settings:
 ```yaml
 exit_node: n                            # 'y' to offer this device as an exit node
 subnet_router: y                        # 'y' to advertise the subnet(s) below
-subnets: "192.0.2.1/24,192.168.2.1/24"  # comma-separated subnet(s) to advertise (required if subnet_router is 'y')
+subnets: "192.0.2.0/24,192.168.2.0/24"  # comma-separated subnet(s) to advertise (required if subnet_router is 'y')
 hostname: raspberrypi                   # hostname for your device
-tags: tag-1,tag-2                       # comma-separated ACL tags to apply (must already exist under tagOwners in your ACL policy)
+tags: tag-1,tag-2                       # comma-separated ACL tag names, without the 'tag:' prefix (must already exist under tagOwners in your ACL policy)
 auth_key: tskey-auth-xxxxxxxxxxxxxxxxx  # your Tailscale auth key
 ```
 
@@ -190,7 +190,7 @@ Depending on your ACL configuration, you may be prompted to authenticate with Ta
 
 For development and source builds, the following tools are needed:
 
-- **Go**: Version 1.26 or later. Download from [golang.org](https://go.dev/dl/).
+- **Go**: Version 1.25 or later. Download from [golang.org](https://go.dev/dl/).
 - **Task**: A task runner / build tool. Installation instructions and documentation can be found at [taskfile.dev](https://taskfile.dev/).
 
 Common tasks:

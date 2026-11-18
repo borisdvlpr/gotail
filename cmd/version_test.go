@@ -22,7 +22,7 @@ func makeVersionCommand() (*cobra.Command, *bytes.Buffer) {
 func TestVersion_CommandProperties(t *testing.T) {
 	testVersionCmd := versionCmd
 	cmdUse := "version"
-	cmdShort := "Show the version of your CLI tool"
+	cmdShort := "Print the gotail version"
 
 	if testVersionCmd.Use != cmdUse {
 		t.Errorf("Expected Use to be '%s', got '%s'", cmdUse, testVersionCmd.Use)
@@ -83,5 +83,38 @@ func TestVersion_CommandFormat(t *testing.T) {
 	parts := strings.Split(output, " ")
 	if len(parts) != 2 {
 		t.Errorf("Expected output format 'gotail <version>', got '%s'", output)
+	}
+}
+
+func TestVersion_CommandWritesToStdout(t *testing.T) {
+	rootCmd.SetOut(nil)
+	rootCmd.SetErr(nil)
+	rootCmd.SetArgs([]string{"version"})
+
+	var err error
+	stdout, stderr := captureOutput(t, func() { err = rootCmd.Execute() })
+
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	if stdout != "gotail dev\n" || stderr != "" {
+		t.Errorf("Expected 'gotail dev' on stdout only, got stdout '%s', stderr '%s'", stdout, stderr)
+	}
+}
+
+func TestVersion_Flag(t *testing.T) {
+	testRootCmd, buf := makeVersionCommand()
+	testRootCmd.SetArgs([]string{"--version"})
+
+	err := testRootCmd.Execute()
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	output := buf.String()
+	expectedOutput := "gotail dev\n"
+	if output != expectedOutput {
+		t.Errorf("Expected output '%s', got '%s'", expectedOutput, output)
 	}
 }

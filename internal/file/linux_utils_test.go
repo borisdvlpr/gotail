@@ -40,6 +40,22 @@ func TestIsMountpointSearchable(t *testing.T) {
 			id:         "invalid_chars",
 			mountpoint: "/mnt/\x00bad",
 			expected:   false},
+		{
+			id:         "exact_prefix",
+			mountpoint: "/mnt",
+			expected:   true},
+		{
+			id:         "prefix_without_separator_mnt",
+			mountpoint: "/mntfoo",
+			expected:   false},
+		{
+			id:         "prefix_without_separator_media",
+			mountpoint: "/mediabackup",
+			expected:   false},
+		{
+			id:         "prefix_without_separator_run_media",
+			mountpoint: "/run/media-old",
+			expected:   false},
 	}
 
 	for _, tc := range testCases {

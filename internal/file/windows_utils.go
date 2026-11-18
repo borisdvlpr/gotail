@@ -64,8 +64,8 @@ func NewSystemSearcher(fsys afero.Fs) *SystemSearcher {
 
 // Search lists logical drives and spawns a goroutine per drive. Drives
 // rejected by isDriveSearchable are skipped. The first successful hit is
-// sent on c; ctx cancellation stops remaining workers. Search closes c
-// when all goroutines have finished.
+// sent on searchChan; ctx cancellation stops remaining workers. Search closes
+// searchChan when all goroutines have finished.
 func (ws *WindowsSearcher) Search(ctx context.Context, fsys afero.Fs, fileName string) (string, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

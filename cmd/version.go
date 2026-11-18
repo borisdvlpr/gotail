@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -11,12 +13,14 @@ var (
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Show the version of your CLI tool",
+	Short: "Print the gotail version",
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Printf("gotail %s\n", version)
+		fmt.Fprintf(cmd.OutOrStdout(), "gotail %s\n", version)
 	},
 }
 
 func init() {
+	rootCmd.Version = version
+	rootCmd.SetVersionTemplate("gotail {{.Version}}\n")
 	rootCmd.AddCommand(versionCmd)
 }

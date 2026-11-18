@@ -78,8 +78,8 @@ func GetFilePath(fsys afero.Fs, rootDir string, fileName string) (string, error)
 }
 
 // FindUserData searches for the cloud-init configuration file on the current system.
-// On macOS, it searches directly within /Volumes. On Linux and Windows, it
-// delegates to the platform-specific DriveSearcher wired in by NewSystemSearcher.
+// It delegates to the platform-specific DriveSearcher wired in by NewSystemSearcher;
+// a nil DriveSearcher means the current operating system is unsupported.
 // Returns the file path on success, or a StatusError if not found or unsupported.
 func (s *SystemSearcher) FindUserData() (string, error) {
 	const fileName = "user-data"
@@ -117,6 +117,30 @@ func drainSearchChan(cancel context.CancelFunc, c chan SearchResult) (string, er
 			cancel()
 			return result.Path, nil
 		}
+	}
+
+	return "", nil
+}
+
+// searchVolumes locates fileName under volumesDir, the directory where macOS
+// mounts removable drives (/Volumes), searching one volume at a time. Walk
+// errors on a volume (e.g. a permission error on an unrelated disk) are
+// treated as "no match" so the remaining volumes still get searched, as the
+// Linux and Windows searchers do. An error is returned only if volumesDir
+// itself cannot be read.
+func searchVolumes(fsys afero.Fs, volumesDir string, fileName string) (string, error) {
+	volumes, err := afero.ReadDir(fsys, volumesDir)
+	if err != nil {
+		return "", fmt.Errorf("%w", err)
+	}
+
+	for _, volume := range volumes {
+		filePath, err := GetFilePath(fsys, filepath.Join(volumesDir, volume.Name()), fileName)
+		if err != nil || filePath == "" {
+			continue
+		}
+
+		return filePath, nil
 	}
 
 	return "", nil

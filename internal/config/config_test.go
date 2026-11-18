@@ -65,6 +65,21 @@ func TestConfigValidate(t *testing.T) {
 			config:        Config{ExitNode: "y", SubnetRouter: "y", Subnets: "192.168.1.0/24,10.0.0.0/16", Hostname: "full-node", Tags: "exit,router", AuthKey: "tskey-abcd1234"},
 			expectedError: nil,
 		},
+		{
+			id:            "exit_node_and_subnet_router_omitted_valid",
+			config:        Config{Hostname: "simple-node", AuthKey: "tskey-abcd1234"},
+			expectedError: nil,
+		},
+		{
+			id:            "exit_node_invalid_value",
+			config:        Config{ExitNode: "yes", SubnetRouter: "n", Hostname: "test-host", AuthKey: "tskey-abcd1234"},
+			expectedError: ierror.StatusError{Status: `exit_node must be "y" or "n", got "yes"`, StatusCode: 1},
+		},
+		{
+			id:            "subnet_router_invalid_value",
+			config:        Config{ExitNode: "n", SubnetRouter: "true", Hostname: "test-host", AuthKey: "tskey-abcd1234"},
+			expectedError: ierror.StatusError{Status: `subnet_router must be "y" or "n", got "true"`, StatusCode: 1},
+		},
 	}
 
 	for _, tc := range testCases {

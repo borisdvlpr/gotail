@@ -49,17 +49,19 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				return err
 			}
 
-			cmd.Printf("Found 'user-data' file at '%s'.\n", filePath)
+			fmt.Fprintf(cmd.OutOrStdout(), "Found 'user-data' file at '%s'.\n", filePath)
 
 			confPath := viper.GetString("file")
 			if confPath != "" {
 				configFile, err := afero.ReadFile(deps.Fsys, confPath)
 				if err != nil {
-					return err
+					status := fmt.Sprintf("cannot read config file: %s", err)
+					return ierror.StatusError{Status: status, StatusCode: 66} // EX_NOINPUT
 				}
 
 				if err = yaml.Unmarshal(configFile, &cfg); err != nil {
-					return err
+					status := fmt.Sprintf("invalid config file: %s", err)
+					return ierror.StatusError{Status: status, StatusCode: 65} // EX_DATAERR
 				}
 			} else {
 				cfg.ExitNode, err = input.PromptUser("Setup device as an exit node?", []string{"y", "n"})
@@ -99,26 +101,35 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				return err
 			}
 
-			if cfg.ExitNode == "y" {
-				flags = append(flags, "--advertise-exit-node")
-				cmd.Println("This device will be an exit node.")
-			}
-
-			if cfg.SubnetRouter == "y" && cfg.Subnets != "" {
-				if err = input.ValidateSubnets(cfg.Subnets); err != nil {
-					return err
-				}
-
+			if cfg.ExitNode == "y" || cfg.SubnetRouter == "y" {
 				runcmds = append(runcmds, []string{
 					"sh", "-c",
 					"echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && " +
 						"echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf && " +
 						"sudo sysctl -p /etc/sysctl.d/99-tailscale.conf",
 				})
+			}
+
+			if cfg.ExitNode == "y" {
+				flags = append(flags, "--advertise-exit-node")
+				fmt.Fprintln(cmd.OutOrStdout(), "This device will be an exit node.")
+			}
+
+			if cfg.SubnetRouter == "y" && cfg.Subnets != "" {
+				normalized, subnetErr := input.ValidateSubnets(cfg.Subnets)
+				if subnetErr != nil {
+					return subnetErr
+				}
+				cfg.Subnets = normalized
+
 				flags = append(flags, fmt.Sprintf("--advertise-routes=%s", cfg.Subnets))
 			}
 
 			if cfg.Hostname != "" {
+				if err = input.ValidateHostname(cfg.Hostname); err != nil {
+					return err
+				}
+
 				flags = append(flags, fmt.Sprintf("--hostname=%s", cfg.Hostname))
 				runcmds = append(runcmds, []string{
 					"sh", "-c", fmt.Sprintf("sudo hostnamectl hostname %s", cfg.Hostname),
@@ -132,22 +143,23 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 				}
 				cfg.Tags = normalized
 				flags = append(flags, fmt.Sprintf("--advertise-tags=%s", cfg.Tags))
-				cmd.Printf("This device will be tagged: %s.\n", cfg.Tags)
+				fmt.Fprintf(cmd.OutOrStdout(), "This device will be tagged: %s.\n", cfg.Tags)
 			}
 
 			flags = append(flags, fmt.Sprintf("--authkey=%s", cfg.AuthKey))
 			runcmds = append(runcmds, flags)
 
-			cmd.Println("Adding Tailscale to 'user-data' file.")
+			fmt.Fprintln(cmd.OutOrStdout(), "Adding Tailscale to 'user-data' file.")
 
-			initConfig := []string{"runcmd:\n"}
+			initConfig := []string{"\nruncmd:\n"}
 			for _, rc := range runcmds {
 				initConfig = append(initConfig, "  - "+format.BuildRunCmd(rc)+"\n")
 			}
 
 			initFile, err := deps.Fsys.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
 			if err != nil {
-				return err
+				status := fmt.Sprintf("cannot open user-data file: %s", err)
+				return ierror.StatusError{Status: status, StatusCode: 74} // EX_IOERR
 			}
 
 			defer func() {
@@ -160,15 +172,17 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 			writer := bufio.NewWriter(initFile)
 			for _, conf := range initConfig {
 				if _, err = writer.WriteString(conf); err != nil {
-					return err
+					status := fmt.Sprintf("cannot write to user-data file: %s", err)
+					return ierror.StatusError{Status: status, StatusCode: 74} // EX_IOERR
 				}
 			}
 
 			if err = writer.Flush(); err != nil {
-				return err
+				status := fmt.Sprintf("cannot write to user-data file: %s", err)
+				return ierror.StatusError{Status: status, StatusCode: 74} // EX_IOERR
 			}
 
-			cmd.Println("Tailscale will be installed on boot. Please eject your SD card and boot your Raspberry Pi.")
+			fmt.Fprintln(cmd.OutOrStdout(), "Tailscale will be installed on boot. Please eject your SD card and boot your Raspberry Pi.")
 			return nil
 		},
 	}
