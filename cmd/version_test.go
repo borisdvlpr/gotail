@@ -22,7 +22,7 @@ func makeVersionCommand() (*cobra.Command, *bytes.Buffer) {
 func TestVersion_CommandProperties(t *testing.T) {
 	testVersionCmd := versionCmd
 	cmdUse := "version"
-	cmdShort := "Show the version of your CLI tool"
+	cmdShort := "Print the gotail version"
 
 	if testVersionCmd.Use != cmdUse {
 		t.Errorf("Expected Use to be '%s', got '%s'", cmdUse, testVersionCmd.Use)
