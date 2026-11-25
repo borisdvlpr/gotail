@@ -5,19 +5,17 @@ package input
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
 	ierror "github.com/borisdvlpr/gotail/internal/error"
 )
 
-// PromptUser prompts the user with the given prompt string and reads the input from stdin.
-// If allowedReplies is provided, it ensures the user's input is one of the allowed replies.
-// It returns the user's input or an error if reading from stdin fails.
-func PromptUser(prompt string, allowedReplies []string) (string, error) {
-	reader := bufio.NewReader(os.Stdin)
-
+// PromptUser prompts the user with the given prompt string and reads one line from reader.
+// Callers asking several questions must share one reader, since it buffers input past the
+// current line. If allowedReplies is provided, it ensures the user's input is one of the
+// allowed replies. It returns the user's input or an error if reading fails.
+func PromptUser(reader *bufio.Reader, prompt string, allowedReplies []string) (string, error) {
 	if allowedReplies != nil {
 		fmt.Printf("%s [%s] ", prompt, strings.Join(allowedReplies, "/"))
 	} else {
