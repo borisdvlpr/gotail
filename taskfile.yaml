@@ -7,7 +7,7 @@ vars:
   BINARY_NAME: bin/gotail
   EXE: '{{if eq OS "windows"}}.exe{{end}}'
   VERSION:
-    sh: cat version.txt
+    sh: git describe --tags --abbrev=0 --dirty=-snapshot 2>/dev/null || echo dev-snapshot
 
 tasks:
   check-go:
@@ -34,7 +34,7 @@ tasks:
       CGO_ENABLED: "0"
     cmds:
       - echo "Building gotail for {{OS}}/{{ARCH}}..."
-      - go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{.VERSION}}-snapshot" -o {{.BINARY_NAME}}{{.EXE}} {{.MAIN_PATH}}
+      - go build -ldflags "-X github.com/borisdvlpr/gotail/cmd.version={{trimPrefix "v" .VERSION}}" -o {{.BINARY_NAME}}{{.EXE}} {{.MAIN_PATH}}
       - echo "Build completed."
 
   install:

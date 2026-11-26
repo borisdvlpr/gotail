@@ -64,34 +64,36 @@ func NewSetupCmd(deps SetupCommand) *cobra.Command {
 					return ierror.StatusError{Status: status, StatusCode: 65} // EX_DATAERR
 				}
 			} else {
-				cfg.ExitNode, err = input.PromptUser("Setup device as an exit node?", []string{"y", "n"})
+				reader := bufio.NewReader(cmd.InOrStdin())
+
+				cfg.ExitNode, err = input.PromptUser(reader, "Setup device as an exit node?", []string{"y", "n"})
 				if err != nil {
 					return err
 				}
 
-				cfg.SubnetRouter, err = input.PromptUser("Setup device as a subnet router?", []string{"y", "n"})
+				cfg.SubnetRouter, err = input.PromptUser(reader, "Setup device as a subnet router?", []string{"y", "n"})
 				if err != nil {
 					return err
 				}
 
 				if cfg.SubnetRouter == "y" {
-					cfg.Subnets, err = input.PromptUser("Please enter your subnets (comma separated):", nil)
+					cfg.Subnets, err = input.PromptUser(reader, "Please enter your subnets (comma separated):", nil)
 					if err != nil {
 						return err
 					}
 				}
 
-				cfg.Hostname, err = input.PromptUser("Please enter a hostname for this device:", nil)
+				cfg.Hostname, err = input.PromptUser(reader, "Please enter a hostname for this device:", nil)
 				if err != nil {
 					return err
 				}
 
-				cfg.Tags, err = input.PromptUser("Please enter tags for this device (comma separated):", nil)
+				cfg.Tags, err = input.PromptUser(reader, "Please enter tags for this device (comma separated):", nil)
 				if err != nil {
 					return err
 				}
 
-				cfg.AuthKey, err = input.PromptUser("Please enter your Tailscale authkey:", nil)
+				cfg.AuthKey, err = input.PromptUser(reader, "Please enter your Tailscale authkey:", nil)
 				if err != nil {
 					return err
 				}

@@ -415,3 +415,209 @@ func TestSetup_IOErrorExitCodes(t *testing.T) {
 		}
 	}
 }
+
+func TestSetup_Interactive(t *testing.T) {
+	mockFS := afero.NewMemMapFs()
+
+	userDataPath := "/mnt/sdcard/user-data"
+	_ = mockFS.MkdirAll("/mnt/sdcard", 0755)
+	_ = afero.WriteFile(mockFS, userDataPath, []byte("# cloud-config\n"), 0644)
+
+	setupDeps := SetupCommand{
+		Fsys:        mockFS,
+		RootChecker: MockRootChecker{ShouldError: false},
+		SystemSearcher: &file.SystemSearcher{
+			Fsys:     mockFS,
+			Searcher: &MockSearcher{},
+		},
+	}
+
+	setupCmd := NewSetupCmd(setupDeps)
+	// All answers are available up front, as when they are piped in.
+	setupCmd.SetIn(strings.NewReader("n\ny\n10.0.0.0/24, 192.168.1.0/24\nraspberrypi\nServer,prod-2\ntskey_1234\n"))
+	setupCmd.SetArgs([]string{})
+
+	var err error
+	stdout, _ := captureOutput(t, func() { err = setupCmd.Execute() })
+
+	if err != nil {
+		t.Fatalf("Expected success, but got error: %v", err)
+	}
+
+	if !strings.Contains(stdout, "Setup device as an exit node? [y/n]") {
+		t.Errorf("Expected the exit node prompt on stdout, got:\n%s", stdout)
+	}
+
+	if !strings.Contains(stdout, "This device will be tagged: tag:server,tag:prod-2.") {
+		t.Errorf("Expected the normalized tags on stdout, got:\n%s", stdout)
+	}
+
+	contentBytes, _ := afero.ReadFile(mockFS, userDataPath)
+	content := string(contentBytes)
+
+	expected := `- ["tailscale", "up", "--ssh", "--advertise-routes=10.0.0.0/24,192.168.1.0/24", "--hostname=raspberrypi", "--advertise-tags=tag:server,tag:prod-2", "--authkey=tskey_1234"]`
+	if !strings.Contains(content, expected) {
+		t.Errorf("Expected user-data to contain\n%s\ngot:\n%s", expected, content)
+	}
+
+	if got := strings.Count(content, "net.ipv4.ip_forward = 1"); got != 1 {
+		t.Errorf("Expected IP forwarding to be enabled once for a subnet router, found %d times in:\n%s", got, content)
+	}
+}
+
+type SetupInteractiveFailTestCase struct {
+	id           string
+	answers      string
+	expectedErr  error
+	expectedCode int
+}
+
+func TestSetup_Fail_Interactive(t *testing.T) {
+	testCases := []SetupInteractiveFailTestCase{
+		{
+			id:           "exit_node_invalid_reply",
+			answers:      "maybe\n",
+			expectedCode: 1,
+		},
+		{
+			id:          "exit_node_eof",
+			answers:     "",
+			expectedErr: io.EOF,
+		},
+		{
+			id:           "subnet_router_invalid_reply",
+			answers:      "n\nmaybe\n",
+			expectedCode: 1,
+		},
+		{
+			id:          "subnets_eof",
+			answers:     "n\ny\n",
+			expectedErr: io.EOF,
+		},
+		{
+			id:          "hostname_eof",
+			answers:     "n\nn\n",
+			expectedErr: io.EOF,
+		},
+		{
+			id:          "tags_eof",
+			answers:     "n\nn\nraspberrypi\n",
+			expectedErr: io.EOF,
+		},
+		{
+			id:          "authkey_eof",
+			answers:     "n\nn\nraspberrypi\n\n",
+			expectedErr: io.EOF,
+		},
+		{
+			id:           "authkey_empty",
+			answers:      "n\nn\nraspberrypi\n\n\n",
+			expectedCode: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		mockFS := afero.NewMemMapFs()
+
+		userDataPath := "/mnt/sdcard/user-data"
+		_ = mockFS.MkdirAll("/mnt/sdcard", 0755)
+		_ = afero.WriteFile(mockFS, userDataPath, []byte("# cloud-config\n"), 0644)
+
+		setupDeps := SetupCommand{
+			Fsys:        mockFS,
+			RootChecker: MockRootChecker{ShouldError: false},
+			SystemSearcher: &file.SystemSearcher{
+				Fsys:     mockFS,
+				Searcher: &MockSearcher{},
+			},
+		}
+
+		setupCmd := NewSetupCmd(setupDeps)
+		setupCmd.SetIn(strings.NewReader(tc.answers))
+		setupCmd.SetArgs([]string{})
+
+		var err error
+		captureOutput(t, func() { err = setupCmd.Execute() })
+
+		if tc.expectedErr != nil && !errors.Is(err, tc.expectedErr) {
+			t.Errorf("%v: Execute() returned %v, expected %v", tc.id, err, tc.expectedErr)
+		}
+
+		if tc.expectedCode != 0 {
+			var statusErr ierror.StatusError
+			if !errors.As(err, &statusErr) || statusErr.StatusCode != tc.expectedCode {
+				t.Errorf("%v: Execute() returned %v, expected StatusError with code %d", tc.id, err, tc.expectedCode)
+			}
+		}
+
+		contentBytes, _ := afero.ReadFile(mockFS, userDataPath)
+		if content := string(contentBytes); content != "# cloud-config\n" {
+			t.Errorf("%v: Expected user-data to be left unchanged, got:\n%s", tc.id, content)
+		}
+	}
+}
+
+type SetupInvalidConfigTestCase struct {
+	id            string
+	config        string
+	expectedError string
+}
+
+func TestSetup_Fail_InvalidConfig(t *testing.T) {
+	testCases := []SetupInvalidConfigTestCase{
+		{
+			id:            "missing_auth_key",
+			config:        "exit_node: n\nsubnet_router: n\nhostname: raspberrypi",
+			expectedError: "auth key is required",
+		},
+		{
+			id:            "subnet_host_bits_set",
+			config:        "subnet_router: y\nsubnets: 192.168.1.1/24\nhostname: raspberrypi\nauth_key: tskey_1234",
+			expectedError: "host bits set",
+		},
+		{
+			id:            "invalid_tag",
+			config:        "hostname: raspberrypi\ntags: \"server,prod_2\"\nauth_key: tskey_1234",
+			expectedError: "invalid tag",
+		},
+	}
+
+	for _, tc := range testCases {
+		mockFS := afero.NewMemMapFs()
+
+		configFile := "/tmp/config.yaml"
+		_ = afero.WriteFile(mockFS, configFile, []byte(tc.config), 0644)
+
+		userDataPath := "/mnt/sdcard/user-data"
+		_ = mockFS.MkdirAll("/mnt/sdcard", 0755)
+		_ = afero.WriteFile(mockFS, userDataPath, []byte("# cloud-config\n"), 0644)
+
+		setupDeps := SetupCommand{
+			Fsys:        mockFS,
+			RootChecker: MockRootChecker{ShouldError: false},
+			SystemSearcher: &file.SystemSearcher{
+				Fsys:     mockFS,
+				Searcher: &MockSearcher{},
+			},
+		}
+
+		setupCmd := NewSetupCmd(setupDeps)
+
+		var buf bytes.Buffer
+		setupCmd.SetOut(&buf)
+		setupCmd.SetErr(&buf)
+		setupCmd.SetArgs([]string{"--file", configFile})
+
+		err := setupCmd.Execute()
+
+		var statusErr ierror.StatusError
+		if !errors.As(err, &statusErr) || statusErr.StatusCode != 1 || !strings.Contains(err.Error(), tc.expectedError) {
+			t.Errorf("%v: Execute() returned %v, expected StatusError with code 1 containing %q", tc.id, err, tc.expectedError)
+		}
+
+		contentBytes, _ := afero.ReadFile(mockFS, userDataPath)
+		if content := string(contentBytes); content != "# cloud-config\n" {
+			t.Errorf("%v: Expected user-data to be left unchanged, got:\n%s", tc.id, content)
+		}
+	}
+}
